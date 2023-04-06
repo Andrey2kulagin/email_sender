@@ -1,4 +1,5 @@
 import smtplib
+import time
 from email.mime.text import MIMEText
 
 from_email = input("введите вашу почту(Поддерживается яндекс и gmail): ")
@@ -38,5 +39,6 @@ with open(emails_filename, 'r', encoding='utf-8') as to_emails:
             print(f"Отправлено сообщение на {to_email}")
         except:
             print(f"Не отправлено на {to_email}\n Она валидна?")
+        time.sleep(15)
 # Закрываем соединение
 server.quit()
