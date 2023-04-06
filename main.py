@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 
-from_email = input("введите вашу почту(Поддердивается яндекс и gmail): ")
+from_email = input("введите вашу почту(Поддерживается яндекс и gmail): ")
 password = input("Введите пароль от почты(прочтите readme.md перед тем, как вставлять): ")
 emails_filename = "to_emails.txt"
 print(f"Не забудьте вставить адреса почт, на которые надо отправить сообщение в файл {emails_filename}")
@@ -30,10 +30,13 @@ message["Subject"] = subject
 message["From"] = from_email
 with open(emails_filename, 'r', encoding='utf-8') as to_emails:
     for to_email in to_emails:
-        # Добавляем адрес получателя в сообщение
-        message["To"] = to_email
-        # Отправляем письмо
-        server.sendmail(from_email, to_email, message.as_string())
-        print(f"Отправлено сообщение на {to_email}")
+        try:
+            # Добавляем адрес получателя в сообщение
+            message["To"] = to_email
+            # Отправляем письмо
+            server.sendmail(from_email, to_email, message.as_string())
+            print(f"Отправлено сообщение на {to_email}")
+        except:
+            print(f"Не отправлено на {to_email}\n Она валидна?")
 # Закрываем соединение
 server.quit()
