@@ -17,21 +17,22 @@ if from_email.count("gmail.com") or from_email.count("yandex.ru"):
         smtp_name = 'smtp.gmail.com'
     else:
         smtp_name = 'smtp.yandex.ru'
-# Создаем объект SMTP
-server = smtplib.SMTP(smtp_name, 587)
-# Указываем, что используем TLS
-server.starttls()
-# Авторизация на почте
-server.login(from_email, password)
-# Создаем сообщение
-with open("message.html", encoding='utf-8') as file:
-    message_text = file.read()
-message = MIMEText(message_text, "html", "utf-8")
-message["Subject"] = subject
-message["From"] = from_email
+
 with open(emails_filename, 'r', encoding='utf-8') as to_emails:
     for to_email in to_emails:
         try:
+            # Создаем объект SMTP
+            server = smtplib.SMTP(smtp_name, 587)
+            # Указываем, что используем TLS
+            server.starttls()
+            # Авторизация на почте
+            server.login(from_email, password)
+            # Создаем сообщение
+            with open("message.html", encoding='utf-8') as file:
+                message_text = file.read()
+            message = MIMEText(message_text, "html", "utf-8")
+            message["Subject"] = subject
+            message["From"] = from_email
             # Добавляем адрес получателя в сообщение
             message["To"] = to_email
             # Отправляем письмо
