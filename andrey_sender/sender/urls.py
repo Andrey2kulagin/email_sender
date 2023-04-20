@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import ContactViewSet
+from .views import ContactViewSet, RegistrationView
 
 urlpatterns = [
+    path('api/v1/user/reg', RegistrationView.as_view()),
     path('api/v1/contact/list', ContactViewSet.as_view({'get': 'list'})),
     path('api/v1/contact/<int:pk>', ContactViewSet.as_view({'get': 'retrieve'})),
     path('api/v1/contact/update/<int:pk>', ContactViewSet.as_view({'put': 'update'})),

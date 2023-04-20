@@ -1,7 +1,7 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions
-from .models import RecipientContact
-from .serializers import RecipientContactSerializer
+from rest_framework import viewsets, permissions, generics
+from .models import RecipientContact, User
+from .serializers import RecipientContactSerializer, UserSerializer
 
 
 # Create your views here.
@@ -11,3 +11,8 @@ class ContactViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return RecipientContact.objects.filter(owner=self.request.user)
+
+
+class RegistrationView(generics.CreateAPIView):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
