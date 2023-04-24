@@ -14,6 +14,7 @@ class User(AbstractUser):
     activation_date = models.DateField(verbose_name="Дата активации подписки", null=True, blank=True)
     subscription_days = models.PositiveIntegerField(verbose_name="Длина подписки(дней)", null=True)
     end_of_subscription = models.DateField(verbose_name="Дата истечения подписки", null=True, blank=True)
+    api_token = models.CharField(max_length=500, null=True)
 
 
 class ContactGroup(models.Model):
