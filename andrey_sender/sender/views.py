@@ -2,9 +2,9 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, generics
 from .models import RecipientContact, User
 from .serializers import RecipientContactSerializer, UserSerializer
+from django.contrib.auth.views import LoginView
 
 
-# Create your views here.
 class ContactViewSet(viewsets.ModelViewSet):
     serializer_class = RecipientContactSerializer
     permission_classes = [permissions.IsAuthenticated]
