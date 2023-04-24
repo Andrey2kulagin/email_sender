@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, RecipientContact, UserLetterText, UserSenders
+from .models import User, RecipientContact, UserLetterText, UserSenders, ContactGroup
 
 
 class MyUserAdmin(UserAdmin):
@@ -25,7 +25,7 @@ class MyUserAdmin(UserAdmin):
                      None,
                      {
                          'fields': (
-                             "subscription", "activation_date", "is_auth",
+                             "subscription", "activation_date",
                              "subscription_days",
                              "end_of_subscription")}
                  ),
@@ -37,3 +37,4 @@ admin.site.register(User, MyUserAdmin)
 admin.site.register(RecipientContact)
 admin.site.register(UserLetterText)
 admin.site.register(UserSenders)
+admin.site.register(ContactGroup)

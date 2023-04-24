@@ -16,3 +16,4 @@ class ContactViewSet(viewsets.ModelViewSet):
 class RegistrationView(generics.CreateAPIView):
     serializer_class = UserSerializer
     queryset = User.objects.all()
+    permission_classes = [permissions.AllowAny]
