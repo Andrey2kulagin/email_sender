@@ -5,8 +5,8 @@ from django.contrib.auth.models import AbstractUser
 
 
 class User(AbstractUser):
-    phone = models.CharField(verbose_name="Номер телефона", max_length=20)
-    field_of_activity = models.CharField(verbose_name="Область деятельности", max_length=100)
+    phone = models.CharField(verbose_name="Номер телефона", max_length=20, null=True, blank=True)
+    field_of_activity = models.CharField(verbose_name="Область деятельности", max_length=100, null=True, blank=True)
     choices = (('Активна', 'Активна'),
                ('Не активна', 'Не активна'),)
     subscription = models.CharField(verbose_name="Статус подписки", max_length=50, choices=choices,
