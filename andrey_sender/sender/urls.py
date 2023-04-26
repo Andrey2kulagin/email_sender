@@ -10,7 +10,7 @@ urlpatterns = [
     path('api/v1/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     # авторизация по токенам
     path('api/v1/auth/', include('djoser.urls')),
-    re_path(r'^auth/', include('djoser.urls.authtoken')),
+    re_path(r'api/v1^auth/', include('djoser.urls.authtoken')),
     # прочее
     path('api/v1/user/reg', RegistrationView.as_view()),
     path('api/v1/contact/list', ContactViewSet.as_view({'get': 'list'})),

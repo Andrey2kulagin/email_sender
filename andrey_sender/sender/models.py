@@ -22,15 +22,6 @@ class ContactGroup(models.Model):
     title = models.CharField(verbose_name="Группа контактов", max_length=100)
 
 
-class RecipientContact(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    contact = models.CharField(verbose_name="Контакт", max_length=100)
-    choices = (('Email', 'Email'),
-               ('WhatsApp', 'WhatsApp'),)
-    type = models.CharField(verbose_name="Тип контакта", max_length=50, choices=choices, null=True)
-    contact_group = models.ForeignKey(ContactGroup, on_delete=models.SET_NULL, null=True)
-
-
 class UserLetterText(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(verbose_name="Внутренние название письма", max_length=100)
@@ -43,3 +34,15 @@ class UserSenders(models.Model):
     text = models.ForeignKey(UserLetterText, on_delete=models.SET_NULL, null=True)
     count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений")
     start_date = models.DateField(auto_now_add=True)
+    comment = models.TextField()
+
+
+class RecipientContact(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    name = models.CharField(max_length=150, null=True, blank=True)
+    surname = models.CharField(max_length=150, null=True, blank=True)
+    phone = models.CharField(verbose_name="Телефон", max_length=100, null=True, blank=True)
+    email = models.EmailField(verbose_name="Email", null=True, blank=True)
+    contact_group = models.ManyToManyField(ContactGroup, null=True)
+    senders = models.ManyToManyField(UserSenders, null=True, blank=True, )
+    comment = models.TextField(null=True, blank=True)
