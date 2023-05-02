@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import RecipientContact, User, ContactGroup, UserSenders
-from .service import send_password, create_password
+from .service import send_password, create_password, set_m2m_fields_to_recipient_contact
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
@@ -38,14 +38,9 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         contact_group = validated_data.pop("contact_group")
         senders = validated_data.pop("senders")
         instance = super().create(validated_data)
-        for group in contact_group:
-            instance.contact_group.add(group)
-        instance.save()
-        # ваш код для дополнительной обработки
+        set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         return instance
 
-
-'''
     def update(self, instance, validated_data):
         instance.name = validated_data.get('name', instance.name)
         instance.surname = validated_data.get('surname', instance.surname)
@@ -53,23 +48,12 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         instance.email = validated_data.get('email', instance.email)
         instance.comment = validated_data.get('comment', instance.comment)
 
-        contact_group_data = validated_data.pop('contact_group', None)
-        senders_data = validated_data.pop('senders', None)
-
-        if contact_group_data is not None:
-            contact_group_list = []
-            for group_data in contact_group_data:
-                group, created = ContactGroup.objects.get_or_create(title=group_data['title'], user=instance.owner)
-                group.recipient_contact.add(instance)
-                contact_group_list.append(group)
-            instance.contact_group.set(contact_group_list)
-
-        if senders_data is not None:
-            instance.senders.set(senders_data)
+        contact_group = validated_data.pop('contact_group', None)
+        senders = validated_data.pop('senders', None)
+        set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
 
         instance.save()
         return instance
-'''
 
 
 class UserSerializer(serializers.ModelSerializer):
