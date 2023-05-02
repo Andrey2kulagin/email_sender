@@ -41,17 +41,30 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         return instance
 
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.context['request'].method == 'POST':
+            fields['owner'].required = True
+        return fields
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if request.method == "POST":
+            if not ("phone" in data or "email" in data):
+                raise serializers.ValidationError("Заполните хотя бы один контакт")
+        if "phone" in data:
+            pass
+        return data
+
     def update(self, instance, validated_data):
         instance.name = validated_data.get('name', instance.name)
         instance.surname = validated_data.get('surname', instance.surname)
         instance.phone = validated_data.get('phone', instance.phone)
         instance.email = validated_data.get('email', instance.email)
         instance.comment = validated_data.get('comment', instance.comment)
-
         contact_group = validated_data.pop('contact_group', None)
         senders = validated_data.pop('senders', None)
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
-
         instance.save()
         return instance
 
@@ -92,7 +105,6 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        print("ызывается CREATE")
         is_password_random = False
         validated_data['username'] = validated_data['email'].split("@")[0]
         if 'password' in validated_data and 'confirm_password' in validated_data:
