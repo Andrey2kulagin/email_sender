@@ -21,9 +21,6 @@ class UserSendersGroupSerializer(serializers.ModelSerializer):
 
 
 class RecipientContactSerializer(serializers.ModelSerializer):
-    contact_group = ContactGroupSerializer(many=True, required=False, read_only=True)
-    senders = UserSendersGroupSerializer(many=True, required=False)
-
     class Meta:
         model = RecipientContact
         fields = ('id',
@@ -37,18 +34,18 @@ class RecipientContactSerializer(serializers.ModelSerializer):
                   'comment')
 
     def create(self, validated_data):
-        contact_group_data = validated_data.pop('contact_group')
-        senders_data = validated_data.pop('senders')
-        recipient_contact = RecipientContact.objects.create(**validated_data)
-        contact_group_list = []
-        for group_data in contact_group_data:
-            group, created = ContactGroup.objects.get_or_create(title=group_data['title'], user=recipient_contact.owner)
-            group.recipient_contact.add(recipient_contact)
-            contact_group_list.append(group)
-        recipient_contact.contact_group.set(contact_group_list)
-        recipient_contact.senders.set(senders_data)
-        return recipient_contact
+        print(validated_data)
+        contact_group = validated_data.pop("contact_group")
+        senders = validated_data.pop("senders")
+        instance = super().create(validated_data)
+        for group in contact_group:
+            instance.contact_group.add(group)
+        instance.save()
+        # ваш код для дополнительной обработки
+        return instance
 
+
+'''
     def update(self, instance, validated_data):
         instance.name = validated_data.get('name', instance.name)
         instance.surname = validated_data.get('surname', instance.surname)
@@ -72,6 +69,7 @@ class RecipientContactSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+'''
 
 
 class UserSerializer(serializers.ModelSerializer):
