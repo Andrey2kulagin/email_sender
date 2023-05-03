@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import RecipientContact, User, ContactGroup, UserSenders
-from .service import send_password, create_password, set_m2m_fields_to_recipient_contact
+from .service import send_password, create_password, set_m2m_fields_to_recipient_contact, is_valid_phone_number, \
+    recipient_contact_patch_validate, recipient_contact_all_fields_valid
+from django.core.validators import validate_email
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
@@ -41,17 +43,23 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         return instance
 
-    def get_fields(self):
-        fields = super().get_fields()
-        if self.context['request'].method == 'POST':
-            fields['owner'].required = True
-        return fields
-
     def validate(self, data):
         request = self.context.get('request')
+        error_missing_contacts = "Заполните хотя бы один контакт"
+        email_valid_error = "Введите правильный email"
+        phone_valid_error = "Неправильный номер телефона. Должно быть 11 цифр и начинаться должен с 8 или +7"
+        username_is_already_occupied_error = "Имя пользователя занято"
+        # проверяем все поля на валидность
+        recipient_contact_all_fields_valid(data, username_is_already_occupied_error, phone_valid_error, request,
+                                           email_valid_error)
         if request.method == "POST":
             if not ("phone" in data or "email" in data):
-                raise serializers.ValidationError("Заполните хотя бы один контакт")
+                raise serializers.ValidationError(error_missing_contacts)
+        elif request.method == "PATCH":
+            instance = self.instance
+            recipient_contact_patch_validate(instance, data, error_missing_contacts, email_valid_error,
+                                             phone_valid_error)
+
         if "phone" in data:
             pass
         return data
@@ -106,7 +114,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         is_password_random = False
-        validated_data['username'] = validated_data['email'].split("@")[0]
+        if validated_data.get("username") is None:
+            validated_data['username'] = validated_data['email'].split("@")[0]
         if 'password' in validated_data and 'confirm_password' in validated_data:
             validated_data.pop('confirm_password')
             password = validated_data.pop('password')

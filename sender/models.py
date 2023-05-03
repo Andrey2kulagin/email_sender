@@ -21,6 +21,9 @@ class ContactGroup(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(verbose_name="Группа контактов", max_length=100)
 
+    def __str__(self):
+        return self.title
+
 
 class UserLetterText(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -35,6 +38,10 @@ class UserSenders(models.Model):
     count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений")
     start_date = models.DateField(auto_now_add=True)
     comment = models.TextField()
+    title = models.CharField(max_length=100, null=True, blank=True, default="Без названия")
+
+    def __str__(self):
+        return self.title
 
 
 class RecipientContact(models.Model):

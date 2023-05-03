@@ -29,9 +29,10 @@ class ServiceTestCase(TestCase):
 
     def test_phone_normalize_7(self):
         result = phone_normalize("+9 (916) 412-28-60")
-        self.assertEqual("99164122860", result)
+        self.assertEqual("+99164122860", result)
 
     # тестирование валидации
+
     def test_is_valid_phone_number_1(self):
         result = is_valid_phone_number("+7 (916) 412-28-60")
         self.assertEqual(True, result)
@@ -50,4 +51,8 @@ class ServiceTestCase(TestCase):
 
     def test_is_valid_phone_number_5(self):
         result = is_valid_phone_number("+79164112860")
+        self.assertEqual(True, result)
+
+    def test_is_valid_phone_number_6(self):
+        result = is_valid_phone_number("79164112860")
         self.assertEqual(True, result)
