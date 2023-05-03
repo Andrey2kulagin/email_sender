@@ -1,5 +1,5 @@
 """
-ASGI config for andrey_sender project.
+ASGI config for cool_sender project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'andrey_sender.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cool_sender.settings')
 
 application = get_asgi_application()
