@@ -17,10 +17,10 @@ urlpatterns = [
     path('api/v1/user/<str:username>', RegistrationViewSet.as_view({'get': 'retrieve'})),
     path('api/v1/user/del/<str:username>', RegistrationViewSet.as_view({'delete': 'destroy'})),
     # other
-    path('api/v1/contact/list', ContactViewSet.as_view({'get': 'list'})),
-    path('api/v1/contact/<int:pk>', ContactViewSet.as_view({'get': 'retrieve'})),
-    path('api/v1/contact/create', ContactViewSet.as_view({'post': 'create'})),
-    path('api/v1/contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'update'})),
-    path('api/v1/contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'})),
+    path('api/v1/contact/list', ContactViewSet.as_view({'get': 'list'}), name="contact_list"),
+    path('api/v1/contact/<int:pk>', ContactViewSet.as_view({'get': 'retrieve'}), name="contact_detail"),
+    path('api/v1/contact/create', ContactViewSet.as_view({'post': 'create'}), name="contact_create"),
+    path('api/v1/contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'update'}), name="contact_update"),
+    path('api/v1/contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
 
 ]
