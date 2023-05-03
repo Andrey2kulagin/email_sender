@@ -99,7 +99,7 @@ def recipient_contact_all_fields_valid(data, username_is_already_occupied_error,
             validate_email(data["email"])
         except:
             raise serializers.ValidationError(email_valid_error)
-        # проверяем, есть ли у пользователя контакт с таким emal, чтобы не было дубликатов
+        # проверяем, есть ли у пользователя контакт с таким email, чтобы не было дубликатов
         contacts_with_this_email = RecipientContact.objects.filter(owner=request.user, email=data["email"])
         if len(contacts_with_this_email) != 0:
             raise serializers.ValidationError(
@@ -116,3 +116,5 @@ def recipient_contact_all_fields_valid(data, username_is_already_occupied_error,
             if sender.user != request.user:
                 raise serializers.ValidationError(
                     f'Рассылка "{sender}" id:{sender.id} не пренадлежит пользователю, который ее использует')
+
+

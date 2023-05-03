@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from .models import RecipientContact, User, ContactGroup, UserSenders
 from .service import send_password, create_password, set_m2m_fields_to_recipient_contact, is_valid_phone_number, \
-    recipient_contact_patch_validate, recipient_contact_all_fields_valid
-from django.core.validators import validate_email
+    recipient_contact_patch_validate, recipient_contact_all_fields_valid, phone_normalize
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
@@ -36,7 +35,8 @@ class RecipientContactSerializer(serializers.ModelSerializer):
                   'comment')
 
     def create(self, validated_data):
-        print(validated_data)
+        if "phone" in validated_data:
+            validated_data["phone"] = phone_normalize(validated_data["phone"])
         contact_group = validated_data.pop("contact_group")
         senders = validated_data.pop("senders")
         instance = super().create(validated_data)
@@ -65,6 +65,8 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
+        if "phone" in validated_data:
+            validated_data["phone"] = phone_normalize(validated_data["phone"])
         instance.name = validated_data.get('name', instance.name)
         instance.surname = validated_data.get('surname', instance.surname)
         instance.phone = validated_data.get('phone', instance.phone)
