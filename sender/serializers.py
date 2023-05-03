@@ -22,6 +22,8 @@ class UserSendersGroupSerializer(serializers.ModelSerializer):
 
 
 class RecipientContactSerializer(serializers.ModelSerializer):
+    email = serializers.CharField(max_length=250)
+
     class Meta:
         model = RecipientContact
         fields = ('id',
@@ -35,10 +37,13 @@ class RecipientContactSerializer(serializers.ModelSerializer):
                   'comment')
 
     def create(self, validated_data):
+        senders, contact_group = [], []
         if "phone" in validated_data:
             validated_data["phone"] = phone_normalize(validated_data["phone"])
-        contact_group = validated_data.pop("contact_group")
-        senders = validated_data.pop("senders")
+        if "contact_group" in validated_data:
+            contact_group = validated_data.pop("contact_group")
+        if "senders" in validated_data:
+            senders = validated_data.pop("senders")
         instance = super().create(validated_data)
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         return instance
@@ -48,9 +53,8 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         error_missing_contacts = "Заполните хотя бы один контакт"
         email_valid_error = "Введите правильный email"
         phone_valid_error = "Неправильный номер телефона. Должно быть 11 цифр и начинаться должен с 8 или +7"
-        username_is_already_occupied_error = "Имя пользователя занято"
         # проверяем все поля на валидность
-        recipient_contact_all_fields_valid(data, username_is_already_occupied_error, phone_valid_error, request,
+        recipient_contact_all_fields_valid(data, phone_valid_error, request,
                                            email_valid_error)
         if request.method == "POST":
             if not ("phone" in data or "email" in data):
@@ -99,7 +103,12 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
+        username_is_already_occupied_error = "Имя пользователя занято"
         request = self.context.get('request')
+        # проверяем, есть ли уже пользователи с таким ником
+        if "username" in data:
+            if len(User.objects.filter(username=data["username"])) != 0:
+                raise serializers.ValidationError(username_is_already_occupied_error)
         if request.method == "POST":
             if User.objects.filter(email=data['email']).exists():
                 raise serializers.ValidationError("User with this email already exists.")

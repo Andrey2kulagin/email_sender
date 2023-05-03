@@ -79,12 +79,8 @@ def recipient_contact_patch_validate(instance, data, error_missing_contacts, ema
                 raise serializers.ValidationError(error_missing_contacts)
 
 
-def recipient_contact_all_fields_valid(data, username_is_already_occupied_error, phone_valid_error, request,
+def recipient_contact_all_fields_valid(data, phone_valid_error, request,
                                        email_valid_error):
-    # проверяем, есть ли уже пользователи с таким ником
-    if "username" in data:
-        if len(User.objects.filter(username=data["username"])) != 0:
-            raise serializers.ValidationError(username_is_already_occupied_error)
     if "phone" in data:
         if not is_valid_phone_number(data["phone"]):
             raise serializers.ValidationError(phone_valid_error)
@@ -116,5 +112,3 @@ def recipient_contact_all_fields_valid(data, username_is_already_occupied_error,
             if sender.user != request.user:
                 raise serializers.ValidationError(
                     f'Рассылка "{sender}" id:{sender.id} не пренадлежит пользователю, который ее использует')
-
-
