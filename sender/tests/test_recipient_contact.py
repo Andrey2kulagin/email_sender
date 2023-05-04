@@ -449,3 +449,132 @@ class RecipientContactUpdateTest(APITestCase):
         }
         response = self.client.patch(url, data, format='json')
         self.assertEqual(401, response.status_code)
+
+
+class RecipientContactListDetailDeleteTest(APITestCase):
+
+    def setUp(self):
+        # создание юзеров
+        self.user = User.objects.create_user(
+            username='testuser', email='testuser@mail.com', password='password')
+        self.token = Token.objects.create(user=self.user)
+        self.token.save()
+        self.second_user = User.objects.create_user(
+            username='seconduser', email='testur@mail.com', password='password')
+        self.second_token = Token.objects.create(user=self.second_user)
+        self.second_token.save()
+        # Создание групп контактов
+        self.first_user_group1 = ContactGroup.objects.create(user=self.user, title="Группа1 1 юзера")
+        self.first_user_group2 = ContactGroup.objects.create(user=self.user, title="Группа2 1 юзера")
+        self.first_user_group3 = ContactGroup.objects.create(user=self.user, title="Группа3 1 юзера")
+        self.second_user_group1 = ContactGroup.objects.create(user=self.second_user, title="Группа1 2 юзера")
+        self.second_user_group2 = ContactGroup.objects.create(user=self.second_user, title="Группа2 2 юзера")
+        self.second_user_group3 = ContactGroup.objects.create(user=self.second_user, title="Группа3 2 юзера")
+        groups_first_user = ContactGroup.objects.filter(user=self.user)
+        groups_second_user = ContactGroup.objects.filter(user=self.second_user)
+        # Создание писем
+        self.user1_letter_text = UserLetterText.objects.create(user=self.user, title="title1",
+                                                               letter_subject="letter_subject1", text="textlkajd")
+        self.user2_letter_text = UserLetterText.objects.create(user=self.second_user, title="title1",
+                                                               letter_subject="letter_subject1", text="textlkajd")
+        # Создание рассылок
+        self.first_user_sender1 = UserSenders.objects.create(user=self.user, text=self.user1_letter_text,
+                                                             count_letter=300, comment="qwer", title="title")
+        self.first_user_sender2 = UserSenders.objects.create(user=self.user, text=self.user1_letter_text,
+                                                             count_letter=300, comment="qwer", title="title")
+        self.first_user_sender3 = UserSenders.objects.create(user=self.user, text=self.user1_letter_text,
+                                                             count_letter=300, comment="qwer", title="title")
+        self.second_user_sender1 = UserSenders.objects.create(user=self.second_user, text=self.user1_letter_text,
+                                                              count_letter=300, comment="qwer", title="title")
+        self.second_user_sender2 = UserSenders.objects.create(user=self.second_user, text=self.user1_letter_text,
+                                                              count_letter=300, comment="qwer", title="title")
+        self.second_user_sender3 = UserSenders.objects.create(user=self.second_user, text=self.user1_letter_text,
+                                                              count_letter=300, comment="qwer", title="title")
+        senders_first_user = UserSenders.objects.filter(user=self.user)
+        senders_second_user = UserSenders.objects.filter(user=self.second_user)
+        # создание контактов
+        self.first_user_contact_1 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_1.contact_group.add(*groups_first_user)
+        self.first_user_contact_1.senders.add(*senders_first_user)
+        self.first_user_contact_2 = RecipientContact.objects.create(owner=self.user, name="user1_name2",
+                                                                    surname="user1_surname2", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_2.contact_group.add(*groups_first_user)
+        self.first_user_contact_2.senders.add(*senders_first_user)
+
+        self.first_user_contact_3 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_3.contact_group.add(*groups_first_user)
+        self.first_user_contact_3.senders.add(*senders_first_user)
+
+        self.second_user_contact_1 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
+                                                                     surname="user1_surname", phone="89753412148",
+                                                                     email="user1@mail.com", comment="comment")
+        self.second_user_contact_1.contact_group.add(*groups_second_user)
+        self.second_user_contact_1.senders.add(*senders_second_user)
+
+        self.second_user_contact_2 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
+                                                                     surname="user1_surname", phone="89653412148",
+                                                                     email="user1@mail.com", comment="comment")
+        self.second_user_contact_2.contact_group.add(*groups_second_user)
+        self.second_user_contact_2.senders.add(*senders_second_user)
+
+        self.second_user_contact_3 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
+                                                                     surname="user1_surname", phone="89753412148",
+                                                                     email="user1@mail.com", comment="comment")
+        self.second_user_contact_3.contact_group.add(*groups_second_user)
+        self.second_user_contact_3.senders.add(*senders_second_user)
+
+    def test_list_contact_1(self):
+        url = reverse('contact_list')
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(3, len(data))
+
+    def test_list_contact_2(self):
+        url = reverse('contact_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(401, response.status_code)
+
+    def test_detail_contact_1(self):
+        url = reverse('contact_detail', kwargs={'pk': 2})
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url, format='json')
+        data = response.data
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("user1_name2", data["name"])
+        self.assertEqual("user1_surname2", data["surname"])
+
+    def test_detail_contact_2(self):
+        url = reverse('contact_detail', kwargs={'pk': 4})
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url, format='json')
+        self.assertEqual(404, response.status_code)
+
+    def test_detail_contact_3(self):
+        url = reverse('contact_detail', kwargs={'pk': 2})
+        response = self.client.get(url, format='json')
+        self.assertEqual(401, response.status_code)
+
+    def test_del_contact_1(self):
+        url = reverse('contact_delete', kwargs={'pk': 2})
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.delete(url, format='json')
+        self.assertEqual(204, response.status_code)
+        self.assertEqual(0, len(RecipientContact.objects.filter(id=2)))
+
+    def test_del_contact_2(self):
+        url = reverse('contact_delete', kwargs={'pk': 4})
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.delete(url, format='json')
+        self.assertEqual(404, response.status_code)
+
+    def test_del_contact_3(self):
+        url = reverse('contact_delete', kwargs={'pk': 2})
+        response = self.client.delete(url, format='json')
+        self.assertEqual(401, response.status_code)
