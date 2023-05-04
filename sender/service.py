@@ -48,10 +48,14 @@ def create_password() -> str:
 
 
 def set_m2m_fields_to_recipient_contact(contact_group: list, instance: RecipientContact, senders: list):
-    for group in contact_group:
-        instance.contact_group.add(group)
-    for sender in senders:
-        instance.senders.add(sender)
+    if contact_group:
+        instance.contact_group.clear()
+        for group in contact_group:
+            instance.contact_group.add(group)
+    if senders:
+        instance.senders.clear()
+        for sender in senders:
+            instance.senders.add(sender)
     instance.save()
 
 
@@ -81,7 +85,7 @@ def recipient_contact_patch_validate(instance, data, error_missing_contacts, ema
 
 def recipient_contact_all_fields_valid(data, phone_valid_error, request,
                                        email_valid_error):
-    if "phone" in data:
+    if data.get("phone"):
         if not is_valid_phone_number(data["phone"]):
             raise serializers.ValidationError(phone_valid_error)
         else:
@@ -90,7 +94,7 @@ def recipient_contact_all_fields_valid(data, phone_valid_error, request,
             if len(contacts_with_this_number) != 0:
                 raise serializers.ValidationError(
                     f"Уже есть контакт(ы) с таким телефоном id:{[i.id for i in contacts_with_this_number]}")
-    if "email" in data:
+    if data.get("email"):
         try:
             validate_email(data["email"])
         except:

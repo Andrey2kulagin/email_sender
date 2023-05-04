@@ -50,6 +50,6 @@ class RecipientContact(models.Model):
     surname = models.CharField(max_length=150, null=True, blank=True)
     phone = models.CharField(verbose_name="Телефон", max_length=100, null=True, blank=True)
     email = models.EmailField(verbose_name="Email", null=True, blank=True)
-    contact_group = models.ManyToManyField(ContactGroup, null=True, blank=True)
-    senders = models.ManyToManyField(UserSenders, null=True, blank=True)
+    contact_group = models.ManyToManyField(ContactGroup, default=[], blank=True)
+    senders = models.ManyToManyField(UserSenders, default=[], blank=True)
     comment = models.TextField(null=True, blank=True)

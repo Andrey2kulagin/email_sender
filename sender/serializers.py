@@ -22,7 +22,7 @@ class UserSendersGroupSerializer(serializers.ModelSerializer):
 
 
 class RecipientContactSerializer(serializers.ModelSerializer):
-    email = serializers.CharField(max_length=250)
+    email = serializers.CharField(max_length=250, required=False, allow_null=True)
 
     class Meta:
         model = RecipientContact
@@ -61,15 +61,14 @@ class RecipientContactSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(error_missing_contacts)
         elif request.method == "PATCH":
             instance = self.instance
+
             recipient_contact_patch_validate(instance, data, error_missing_contacts, email_valid_error,
                                              phone_valid_error)
 
-        if "phone" in data:
-            pass
         return data
 
     def update(self, instance, validated_data):
-        if "phone" in validated_data:
+        if validated_data.get("phone"):
             validated_data["phone"] = phone_normalize(validated_data["phone"])
         instance.name = validated_data.get('name', instance.name)
         instance.surname = validated_data.get('surname', instance.surname)
@@ -77,7 +76,9 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         instance.email = validated_data.get('email', instance.email)
         instance.comment = validated_data.get('comment', instance.comment)
         contact_group = validated_data.pop('contact_group', None)
+
         senders = validated_data.pop('senders', None)
+
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         instance.save()
         return instance
