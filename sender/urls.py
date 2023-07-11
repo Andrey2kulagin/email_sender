@@ -12,7 +12,7 @@ urlpatterns = [
     path('api/v1/auth/', include('djoser.urls')),
     re_path(r'api/v1^auth/', include('djoser.urls.authtoken')),
     # Взаимодействие с юзером:
-    path('api/v1/user/reg', RegistrationViewSet.as_view({'post': 'create'})),
+    path('api/v1/user/create', RegistrationViewSet.as_view({'post': 'create'})),
     path('api/v1/user/update/<str:username>', RegistrationViewSet.as_view({'patch': 'update'})),
     path('api/v1/user/<str:username>', RegistrationViewSet.as_view({'get': 'retrieve'})),
     path('api/v1/user/del/<str:username>', RegistrationViewSet.as_view({'delete': 'destroy'})),
