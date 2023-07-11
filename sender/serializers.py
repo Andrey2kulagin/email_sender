@@ -137,6 +137,6 @@ class UserSerializer(serializers.ModelSerializer):
         user = super(UserSerializer, self).create(validated_data)
         user.set_password(password)
         user.save()
-        if is_password_random:
-            send_password(validated_data['email'], password)
+        # if is_password_random:
+        # send_password(validated_data['email'], password)
         return user
