@@ -1,5 +1,5 @@
 from django.test import TestCase
-from ..service import phone_normalize, is_valid_phone_number
+from sender.services.all_service import phone_normalize, is_valid_phone_number
 
 
 class ServiceTestCase(TestCase):

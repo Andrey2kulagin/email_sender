@@ -4,6 +4,9 @@ from .models import RecipientContact, User
 from .serializers import RecipientContactSerializer, UserSerializer
 from django.contrib.auth.views import LoginView
 from django.core.mail import send_mail
+from rest_framework import status
+from rest_framework.response import Response
+from .services.user_service import user_create
 
 
 class ContactViewSet(viewsets.ModelViewSet):
@@ -42,6 +45,11 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         # Вызываем оригинальный метод viewset
         response = super().destroy(request, *args, **kwargs)
         return response
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        user_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get_serializer(self, *args, **kwargs):
         serializer = super().get_serializer(*args, **kwargs)

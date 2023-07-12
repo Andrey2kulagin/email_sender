@@ -1,7 +1,5 @@
-import secrets
-import string
 from django.core.mail import send_mail
-from .models import RecipientContact, User
+from sender.models import RecipientContact, User
 import re
 from django.core.validators import validate_email
 from rest_framework import serializers
@@ -39,12 +37,6 @@ def send_password(email: str, password: str):
         [email],
         fail_silently=False,
     )
-
-
-def create_password() -> str:
-    alphabet = string.ascii_letters + string.digits + string.punctuation
-    password = ''.join(secrets.choice(alphabet) for i in range(12))
-    return password
 
 
 def set_m2m_fields_to_recipient_contact(contact_group: list, instance: RecipientContact, senders: list):

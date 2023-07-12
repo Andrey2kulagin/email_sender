@@ -5,13 +5,16 @@ from .views import ContactViewSet, RegistrationViewSet
 
 urlpatterns = [
     # авторизация черех JVT
+    # это все инкапсулировано, пока не трогаю
     path('api/v1/token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v1/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/token/verify', TokenVerifyView.as_view(), name='token_verify'),
     # авторизация по токенам
+    # это все инкапсулировано, пока не трогаю
     path('api/v1/auth', include('djoser.urls')),
     re_path(r'api/v1^auth', include('djoser.urls.authtoken')),
     # Взаимодействие с юзером:
+    # здесь надо поправить бизнес-логику и обработку исключений
     path('api/v1/user/create', RegistrationViewSet.as_view({'post': 'create'})),
     path('api/v1/user/update/<str:username>', RegistrationViewSet.as_view({'patch': 'update'})),
     path('api/v1/user/<str:username>', RegistrationViewSet.as_view({'get': 'retrieve'})),
