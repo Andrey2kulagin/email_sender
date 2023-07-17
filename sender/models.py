@@ -49,7 +49,35 @@ class RecipientContact(models.Model):
     name = models.CharField(max_length=150, null=True, blank=True)
     surname = models.CharField(max_length=150, null=True, blank=True)
     phone = models.CharField(verbose_name="Телефон", max_length=100, null=True, blank=True)
+    is_phone_whatsapp_reg = models.BooleanField(verbose_name="Телефон проверен на наличие в WhatsApp", default=False,
+                                                null=True)
+    whats_reg_checked_data = models.DateField(default=None, null=True)
     email = models.EmailField(verbose_name="Email", null=True, blank=True)
     contact_group = models.ManyToManyField(ContactGroup, default=[], blank=True)
     senders = models.ManyToManyField(UserSenders, default=[], blank=True)
     comment = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        if self.phone:
+            return f"{self.owner.username} - {self.phone}"
+        if self.email:
+            return f"{self.owner.username} - {self.email}"
+
+
+class SenderEmail(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    contact = models.CharField(verbose_name="Контакт")
+    password = models.CharField()
+    checked_data = models.DateField(null=True, default=None)
+    is_valid = models.BooleanField(null=True, default=False)
+
+
+class SenderPhoneNumber(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    contact = models.CharField(verbose_name="Контакт")
+    login_date = models.DateField(null=True, default=None)
+    is_login = models.BooleanField(null=True, default=False)
+
+    @property
+    def session_number(self):
+        return self.id

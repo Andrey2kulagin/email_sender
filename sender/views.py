@@ -1,12 +1,12 @@
-from django.shortcuts import render
 from rest_framework import viewsets, permissions, generics
 from .models import RecipientContact, User
 from .serializers import RecipientContactSerializer, UserSerializer
-from django.contrib.auth.views import LoginView
-from django.core.mail import send_mail
 from rest_framework import status
 from rest_framework.response import Response
 from .services.user_service import user_create
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from .services.whats_app_utils import get_active_whatsapp_account
 
 
 class ContactViewSet(viewsets.ModelViewSet):
@@ -18,6 +18,14 @@ class ContactViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return RecipientContact.objects.filter(owner=self.request.user)
+
+
+class CheckAllWhatsAppNumber(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self):
+        user = self.request.user
+        get_active_whatsapp_account(user=user, )
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):

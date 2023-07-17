@@ -6,24 +6,28 @@ from .views import ContactViewSet, RegistrationViewSet
 urlpatterns = [
     # авторизация черех JVT
     # это все инкапсулировано, пока не трогаю
-    path('api/v1/token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/v1/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/v1/token/verify', TokenVerifyView.as_view(), name='token_verify'),
+    path('token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/verify', TokenVerifyView.as_view(), name='token_verify'),
     # авторизация по токенам
     # это все инкапсулировано, пока не трогаю
-    path('api/v1/auth', include('djoser.urls')),
+    path('auth', include('djoser.urls')),
     re_path(r'api/v1^auth', include('djoser.urls.authtoken')),
     # Взаимодействие с юзером:
     # здесь надо поправить бизнес-логику и обработку исключений
-    path('api/v1/user/create', RegistrationViewSet.as_view({'post': 'create'})),
-    path('api/v1/user/update/<str:username>', RegistrationViewSet.as_view({'patch': 'update'})),
-    path('api/v1/user/<str:username>', RegistrationViewSet.as_view({'get': 'retrieve'})),
-    path('api/v1/user/del/<str:username>', RegistrationViewSet.as_view({'delete': 'destroy'})),
+    path('user/create', RegistrationViewSet.as_view({'post': 'create'})),
+    path('user/update/<str:username>', RegistrationViewSet.as_view({'patch': 'partial_update'})),
+    path('user/<str:username>', RegistrationViewSet.as_view({'get': 'retrieve'})),
+    path('user/del/<str:username>', RegistrationViewSet.as_view({'delete': 'destroy'})),
     # other
-    path('api/v1/contact/list', ContactViewSet.as_view({'get': 'list'}), name="contact_list"),
-    path('api/v1/contact/<int:pk>', ContactViewSet.as_view({'get': 'retrieve'}), name="contact_detail"),
-    path('api/v1/contact/create', ContactViewSet.as_view({'post': 'create'}), name="contact_create"),
-    path('api/v1/contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'update'}), name="contact_update"),
-    path('api/v1/contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
+    path('contact/list', ContactViewSet.as_view({'get': 'list'}), name="contact_list"),
+    path('contact/<int:pk>', ContactViewSet.as_view({'get': 'retrieve'}), name="contact_detail"),
+    path('contact/create', ContactViewSet.as_view({'post': 'create'}), name="contact_create"),
+    path('contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'partial_update'}), name="contact_update"),
+    path('contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
+
+    path('contact:check_all_whats_app_number'),
+    path('contact:check_whats_app_number')
+
 
 ]

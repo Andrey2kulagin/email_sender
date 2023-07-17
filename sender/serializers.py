@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from .models import RecipientContact, User, ContactGroup, UserSenders
-from sender.services.all_service import set_m2m_fields_to_recipient_contact, recipient_contact_patch_validate, \
-    recipient_contact_all_fields_valid, phone_normalize
+from sender.services.all_service import set_m2m_fields_to_recipient_contact,  phone_normalize
 from .services.user_service import user_data_validate
+from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
@@ -77,9 +77,7 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         instance.email = validated_data.get('email', instance.email)
         instance.comment = validated_data.get('comment', instance.comment)
         contact_group = validated_data.pop('contact_group', None)
-
         senders = validated_data.pop('senders', None)
-
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         instance.save()
         return instance
