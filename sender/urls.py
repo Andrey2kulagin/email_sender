@@ -1,7 +1,7 @@
 from django.urls import path, include, re_path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
-from .views import ContactViewSet, RegistrationViewSet
+from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount
 
 urlpatterns = [
     # авторизация черех JVT
@@ -26,8 +26,8 @@ urlpatterns = [
     path('contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'partial_update'}), name="contact_update"),
     path('contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
 
-    path('contact:check_all_whats_app_number'),
-    path('contact:check_whats_app_number')
-
+    path('contact:check_all_whats_app_number', CheckAllWhatsAppNumber.as_view()),
+   # path('contact:check_whats_app_number'),
+    path("check_whatsapp_account", LoginWhatsAppAccount.as_view())
 
 ]

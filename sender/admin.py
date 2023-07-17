@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, RecipientContact, UserLetterText, UserSenders, ContactGroup
+from .models import User, RecipientContact, UserLetterText, UserSenders, ContactGroup, SenderPhoneNumber, SenderEmail
 
 
 class MyUserAdmin(UserAdmin):
@@ -38,3 +38,5 @@ admin.site.register(RecipientContact)
 admin.site.register(UserLetterText)
 admin.site.register(UserSenders)
 admin.site.register(ContactGroup)
+admin.site.register(SenderPhoneNumber)
+admin.site.register(SenderEmail)

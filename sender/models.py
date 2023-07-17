@@ -66,16 +66,16 @@ class RecipientContact(models.Model):
 
 class SenderEmail(models.Model):
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    contact = models.CharField(verbose_name="Контакт")
-    password = models.CharField()
+    contact = models.CharField(verbose_name="Контакт", max_length=50)
+    password = models.CharField(max_length=50)
     checked_data = models.DateField(null=True, default=None)
     is_valid = models.BooleanField(null=True, default=False)
 
 
 class SenderPhoneNumber(models.Model):
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    contact = models.CharField(verbose_name="Контакт")
-    login_date = models.DateField(null=True, default=None)
+    contact = models.CharField(verbose_name="Контакт", max_length=50)
+    login_date = models.DateField(null=True, default=None, blank=True)
     is_login = models.BooleanField(null=True, default=False)
 
     @property

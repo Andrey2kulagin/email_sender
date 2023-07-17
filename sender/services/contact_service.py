@@ -1,12 +1,6 @@
 from .all_service import phone_normalize, validate_email, is_valid_phone_number
 from rest_framework import serializers
 from ..models import RecipientContact
-from django.db.models.query import QuerySet
-
-
-def check_contacts(contacts_queryset: QuerySet[RecipientContact]):
-    # если профиль для проверки авторизован, то проверяем, иначе авторизуемся
-    pass
 
 
 def recipient_contact_patch_validate(instance, data, error_missing_contacts, email_valid_error, phone_valid_error):

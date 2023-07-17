@@ -1,12 +1,15 @@
+import datetime
+
 from rest_framework import viewsets, permissions, generics
-from .models import RecipientContact, User
+from .models import RecipientContact, User, SenderPhoneNumber
 from .serializers import RecipientContactSerializer, UserSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from .services.user_service import user_create
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .services.whats_app_utils import get_active_whatsapp_account
+from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class ContactViewSet(viewsets.ModelViewSet):
@@ -23,9 +26,40 @@ class ContactViewSet(viewsets.ModelViewSet):
 class CheckAllWhatsAppNumber(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self):
+    def get(self, request):
         user = self.request.user
-        get_active_whatsapp_account(user=user, )
+        auth_account = get_active_whatsapp_account(user=user)
+        if auth_account:
+            contacts_for_checking = RecipientContact.objects.filter(owner=user, phone__isnull=False,
+                                                                    is_phone_whatsapp_reg=False)
+            check_whatsapp_contacts(contacts_for_checking, auth_account)
+            return Response(status=200)
+        else:
+            "возвращаем ошибку в стиле авторизуйтесь в WhatsApp"
+            return Response(status=400)
+
+
+class LoginWhatsAppAccount(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        check_phone = request.data.get("contact")
+        try:
+            response_data = {
+                "status": "FAIL TRY AGAIN"
+            }
+            check_phone_obj = SenderPhoneNumber.objects.get(owner=user, contact=check_phone)
+            if login_to_wa_account(session_number=check_phone_obj.session_number):
+                check_phone_obj.is_login = True
+                check_phone_obj.login_date = datetime.datetime.now()
+                check_phone_obj.save()
+                response_data["status"] = "OK"
+                return Response(status=200, data=response_data)
+            else:
+                return Response(status=400, data=response_data)
+        except ObjectDoesNotExist:
+            return Response(status=404, data={"Такого аккаунта для рассылки Whats App не добавлено"})
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
