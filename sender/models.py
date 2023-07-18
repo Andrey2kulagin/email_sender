@@ -51,13 +51,15 @@ class RecipientContact(models.Model):
     phone = models.CharField(verbose_name="Телефон", max_length=100, null=True, blank=True)
     is_phone_whatsapp_reg = models.BooleanField(verbose_name="Телефон проверен на наличие в WhatsApp", default=False,
                                                 null=True)
-    whats_reg_checked_data = models.DateField(default=None, null=True)
+    whats_reg_checked_data = models.DateField(default=None, null=True, blank=True)
     email = models.EmailField(verbose_name="Email", null=True, blank=True)
     contact_group = models.ManyToManyField(ContactGroup, default=[], blank=True)
     senders = models.ManyToManyField(UserSenders, default=[], blank=True)
     comment = models.TextField(null=True, blank=True)
 
     def __str__(self):
+        if self.phone and self.email:
+            return f"{self.owner.username} - {self.phone} - {self.email}"
         if self.phone:
             return f"{self.owner.username} - {self.phone}"
         if self.email:

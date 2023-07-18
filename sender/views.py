@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from .services.user_service import user_create
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account
+from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account, \
+    get_user_queryset
 from django.core.exceptions import ObjectDoesNotExist
 
 
@@ -39,6 +40,23 @@ class CheckAllWhatsAppNumber(APIView):
             return Response(status=400)
 
 
+class CheckWhatsAppContactsGroups(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = self.request.user
+        groups = request.data.get("groups")
+        users = request.data.get("users")
+        auth_account = get_active_whatsapp_account(user=user)
+        if auth_account:
+            all_checking_obj = get_user_queryset(groups, users, self.request.user)
+            check_whatsapp_contacts(all_checking_obj, auth_account)
+            return Response(status=200)
+        else:
+            "возвращаем ошибку в стиле авторизуйтесь в WhatsApp"
+            return Response(status=400)
+
+
 class LoginWhatsAppAccount(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -50,6 +68,7 @@ class LoginWhatsAppAccount(APIView):
                 "status": "FAIL TRY AGAIN"
             }
             check_phone_obj = SenderPhoneNumber.objects.get(owner=user, contact=check_phone)
+
             if login_to_wa_account(session_number=check_phone_obj.session_number):
                 check_phone_obj.is_login = True
                 check_phone_obj.login_date = datetime.datetime.now()

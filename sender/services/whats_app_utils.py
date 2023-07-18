@@ -9,16 +9,36 @@ from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image
 from io import BytesIO
 from django.db.models.query import QuerySet
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
+from django.core.exceptions import ObjectDoesNotExist
+
+
+def get_user_queryset(groups: list[int], contacts: list[int], user: User):
+    """
+    возвращает список контактов пользователя по списку их id и групп
+    """
+    total_queryset = []
+    for group in groups:
+        total_queryset += [i for i in RecipientContact.objects.filter(owner=user, contact_group__id=group)]
+    for contact in contacts:
+        try:
+            total_queryset.append(RecipientContact.objects.get(owner=user, id=contact))
+        except ObjectDoesNotExist:
+            continue
+    total_queryset = list(set(total_queryset))
+    return total_queryset
 
 
 def gen_qr_code(driver):
     '''Получает QR-код'''
     driver.get("https://web.whatsapp.com/")
     # скриншот элемента страницы с QR-кодом
-    qr_element = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "canvas[aria-label='Scan me!']"))
-    )
+    try:
+        qr_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "canvas[aria-label='Scan me!']"))
+        )
+    except TimeoutException:
+        return 0
     location = qr_element.location
     size = qr_element.size
     png = driver.get_screenshot_as_png()
@@ -36,12 +56,17 @@ def login_to_wa_account(driver=None, session_number=None):
     if not driver:
         driver = create_wa_driver(session_number)
     gen_qr_code(driver)
+    print("after gen_qr")
     count_attempt = 0
     max_attempt = 15
     sleep_time = 10
-    while not is_login(driver=driver) and count_attempt < max_attempt:
+    is_log = is_login(driver=driver)
+    while not is_log and count_attempt < max_attempt:
         time.sleep(sleep_time)
+        print("is_log=", is_log)
         count_attempt += 1
+        is_log = is_login(driver=driver)
+    driver.quit()
     return count_attempt < max_attempt
 
 
@@ -52,9 +77,7 @@ def create_wa_driver(session_id=None):
 
     # chrome_options.add_argument("--headless")
     driver = undetected_chromedriver.Chrome(options=chrome_options)
-    print("akasklhlsahlk")
     driver.get("https://web.whatsapp.com/")
-    print("get whatsapp")
     return driver
 
 
@@ -74,13 +97,20 @@ def is_login(session_id: str = None, driver=None):
         return False
 
 
-def get_active_whatsapp_account(user: User) -> SenderPhoneNumber:
+def get_active_whatsapp_account(user: User, driver=None) -> SenderPhoneNumber:
     'выбор авторизованного аккаунта whatsApp'
+    print("get_active_whatsapp_account")
     login_whats_app_acc = SenderPhoneNumber.objects.filter(owner=user, is_login=True)
-    print(len(login_whats_app_acc))
+    print("len = ", len(login_whats_app_acc))
     for login_acc in login_whats_app_acc:
-        if is_login(login_acc.session_number):
+        if not driver:
+            driver = create_wa_driver(session_id=login_acc.session_number)
+        if login_to_wa_account(driver=driver, session_number=login_acc.session_number):
+            driver.quit()
+            print(login_acc)
             return login_acc
+        if driver:
+            driver.quit()
 
 
 def is_this_number_reg(driver) -> bool:
@@ -88,10 +118,13 @@ def is_this_number_reg(driver) -> bool:
         wrong_phone_div = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".f8jlpxt4.iuhl9who"))
         )
-        if wrong_phone_div.text == "Неверный номер телефона.":
-            return False
-        else:
-            raise
+        try:
+            if wrong_phone_div.text == "Неверный номер телефона.":
+                return False
+            else:
+                raise TimeoutException
+        except StaleElementReferenceException:
+            raise TimeoutException
     except TimeoutException:
         try:
             WebDriverWait(driver, 10).until(
@@ -105,14 +138,11 @@ def is_this_number_reg(driver) -> bool:
 
 def check_whatsapp_contacts(contacts_queryset: QuerySet[RecipientContact], auth_account):
     # если профиль для проверки авторизован, то проверяем, иначе авторизуемся
-    chrome_options = Options()
-    chrome_options.add_argument(f'--user-data-dir=./whats_app_session/{auth_account.session_number}')
-    # chrome_options.add_argument("--headless")
-    driver = undetected_chromedriver.Chrome(options=chrome_options)
-    driver.maximize_window()
-    driver.get("https://web.whatsapp.com")
+    driver = create_wa_driver(auth_account.session_number)
     for contact in contacts_queryset:
-        driver.get(f"https://web.whatsapp.com/send?phone={contact.phone}")
+        driver.get(f"https://web.whatsapp.com/send?phone={contact.phone}&text=test")
         print(is_this_number_reg(driver))
         contact.is_phone_whatsapp_reg = is_this_number_reg(driver)
         contact.whats_reg_checked_data = datetime.datetime.now()
+        contact.save()
+    driver.quit()
