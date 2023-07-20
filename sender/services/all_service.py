@@ -39,15 +39,6 @@ def send_password(email: str, password: str):
     )
 
 
-def set_m2m_fields_to_recipient_contact(contact_group: list, instance: RecipientContact, senders: list):
-    if contact_group:
-        instance.contact_group.clear()
-        for group in contact_group:
-            instance.contact_group.add(group)
-    if senders:
-        instance.senders.clear()
-        for sender in senders:
-            instance.senders.add(sender)
-    instance.save()
+
 
 

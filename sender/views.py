@@ -1,8 +1,8 @@
 import datetime
 
-from rest_framework import viewsets, permissions, generics
-from .models import RecipientContact, User, SenderPhoneNumber
-from .serializers import RecipientContactSerializer, UserSerializer
+from rest_framework import viewsets, permissions
+from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail
+from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from .services.user_service import user_create
@@ -11,6 +11,15 @@ from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account, \
     get_user_queryset
 from django.core.exceptions import ObjectDoesNotExist
+
+
+class EmailAccountViewSet(viewsets.ModelViewSet):
+    serializer_class = EmailAccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+    def get_queryset(self):
+        return SenderEmail.objects.filter(owner=self.request.user)
 
 
 class ContactViewSet(viewsets.ModelViewSet):
@@ -26,7 +35,6 @@ class ContactViewSet(viewsets.ModelViewSet):
 
 class CheckAllWhatsAppNumber(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         user = self.request.user
         auth_account = get_active_whatsapp_account(user=user)

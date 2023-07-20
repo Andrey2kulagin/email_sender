@@ -1,8 +1,10 @@
 from rest_framework import serializers
-from .models import RecipientContact, User, ContactGroup, UserSenders
-from sender.services.all_service import set_m2m_fields_to_recipient_contact,  phone_normalize
+from .models import RecipientContact, User, ContactGroup, UserSenders, SenderEmail
+from sender.services.all_service import phone_normalize
 from .services.user_service import user_data_validate
-from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid
+from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid, \
+    set_m2m_fields_to_recipient_contact, recipient_contact_update
+from .services.senders_account_service import email_check_null
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
@@ -22,8 +24,30 @@ class UserSendersGroupSerializer(serializers.ModelSerializer):
                   )
 
 
+class EmailAccountSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(max_length=50, write_only=True)
+    checked_date = serializers.DateField(read_only=True)
+    is_check_pass = serializers.BooleanField(read_only=True)
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = SenderEmail
+        fields = ("id",
+                  'contact',
+                  'title',
+                  'password',
+                  'checked_date',
+                  'is_check_pass',
+                  )
+
+    def update(self, instance, validated_data):
+        email_check_null(instance, validated_data)
+        return super().update(instance, validated_data)
+
+
 class RecipientContactSerializer(serializers.ModelSerializer):
     email = serializers.CharField(max_length=250, required=False, allow_null=True)
+    is_phone_whatsapp_reg = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = RecipientContact
@@ -31,6 +55,7 @@ class RecipientContactSerializer(serializers.ModelSerializer):
                   'owner',
                   'name',
                   'surname',
+                  'is_phone_whatsapp_reg',
                   'phone',
                   'email',
                   'contact_group',
@@ -48,6 +73,9 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         instance = super().create(validated_data)
         set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
         return instance
+
+    def update(self, instance, validated_data):
+        return recipient_contact_update(validated_data, instance)
 
     def validate(self, data):
         request = self.context.get('request')
@@ -67,20 +95,6 @@ class RecipientContactSerializer(serializers.ModelSerializer):
                                              phone_valid_error)
 
         return data
-
-    def update(self, instance, validated_data):
-        if validated_data.get("phone"):
-            validated_data["phone"] = phone_normalize(validated_data["phone"])
-        instance.name = validated_data.get('name', instance.name)
-        instance.surname = validated_data.get('surname', instance.surname)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.email = validated_data.get('email', instance.email)
-        instance.comment = validated_data.get('comment', instance.comment)
-        contact_group = validated_data.pop('contact_group', None)
-        senders = validated_data.pop('senders', None)
-        set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
-        instance.save()
-        return instance
 
 
 class UserSerializer(serializers.ModelSerializer):

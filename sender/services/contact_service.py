@@ -3,6 +3,36 @@ from rest_framework import serializers
 from ..models import RecipientContact
 
 
+def recipient_contact_update(validated_data, instance):
+    if validated_data.get("phone"):
+        validated_data["phone"] = phone_normalize(validated_data["phone"])
+    if "phone" in validated_data:
+        instance.is_phone_whatsapp_reg = None
+        instance.whats_reg_checked_data = None
+    instance.name = validated_data.get('name', instance.name)
+    instance.surname = validated_data.get('surname', instance.surname)
+    instance.phone = validated_data.get('phone', instance.phone)
+    instance.email = validated_data.get('email', instance.email)
+    instance.comment = validated_data.get('comment', instance.comment)
+    contact_group = validated_data.pop('contact_group', None)
+    senders = validated_data.pop('senders', None)
+    set_m2m_fields_to_recipient_contact(contact_group, instance, senders)
+    instance.save()
+    return instance
+
+
+def set_m2m_fields_to_recipient_contact(contact_group: list, instance: RecipientContact, senders: list):
+    if contact_group:
+        instance.contact_group.clear()
+        for group in contact_group:
+            instance.contact_group.add(group)
+    if senders:
+        instance.senders.clear()
+        for sender in senders:
+            instance.senders.add(sender)
+    instance.save()
+
+
 def recipient_contact_patch_validate(instance, data, error_missing_contacts, email_valid_error, phone_valid_error):
     # обрабатываем случай удаления обоих контактов
     if ("phone" in data and "email" in data) and (data["email"] is None and data["phone"] is None):
