@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from .models import RecipientContact, User, ContactGroup, UserSenders, SenderEmail
-from sender.services.all_service import phone_normalize
+from .models import RecipientContact, User, ContactGroup, UserSenders, SenderEmail, SenderPhoneNumber
+from sender.services.all_service import phone_normalize, is_valid_phone_number
 from .services.user_service import user_data_validate
 from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid, \
     set_m2m_fields_to_recipient_contact, recipient_contact_update
-from .services.senders_account_service import email_check_null
+from .services.senders_account_service import email_check_null, whatsapp_check_null
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
@@ -13,15 +13,29 @@ class ContactGroupSerializer(serializers.ModelSerializer):
         fields = ('id', 'title')
 
 
-class UserSendersGroupSerializer(serializers.ModelSerializer):
+class WhatsAppAccountSerializer(serializers.ModelSerializer):
+    is_login = serializers.BooleanField(read_only=True)
+    id = serializers.IntegerField(read_only=True)
+
     class Meta:
-        model = UserSenders
-        fields = ('user',
-                  'text',
-                  'count_letter',
-                  'start_date',
-                  'comment',
+        model = SenderPhoneNumber
+        fields = ("id",
+                  'contact',
+                  'title',
+                  'is_login',
                   )
+
+    def validate(self, data):
+        phone_norm = phone_normalize(data.get("contact"))
+        if not is_valid_phone_number(phone_norm):
+            raise serializers.ValidationError("Номер не валидный")
+        data["contact"] = phone_norm
+        return data
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        whatsapp_check_null(instance, validated_data)
+        return instance
 
 
 class EmailAccountSerializer(serializers.ModelSerializer):
@@ -41,8 +55,20 @@ class EmailAccountSerializer(serializers.ModelSerializer):
                   )
 
     def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
         email_check_null(instance, validated_data)
-        return super().update(instance, validated_data)
+        return instance
+
+
+class UserSendersGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSenders
+        fields = ('user',
+                  'text',
+                  'count_letter',
+                  'start_date',
+                  'comment',
+                  )
 
 
 class RecipientContactSerializer(serializers.ModelSerializer):

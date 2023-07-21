@@ -2,7 +2,7 @@ from django.urls import path, include, re_path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
-    CheckWhatsAppContactsGroups, EmailAccountViewSet
+    CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet
 
 urlpatterns = [
     # авторизация черех JVT
@@ -36,7 +36,18 @@ urlpatterns = [
     # path("send_account/email/<int:pk>:check", name="email_check"),  # Сделать!!!!
     # path("send_account/email:check_all", name="all_email_check"),  # Сделать!!!!
 
+    # WHATSAPP
+    path("send_account/whatsApp/<int:pk>", WhatsAppAccountViewSet.as_view({'get': 'retrieve'}), name="WA_get"),
+    path("send_account/whatsApp/list", WhatsAppAccountViewSet.as_view({'get': 'list'}), name="WA_list"),
+    path("send_account/whatsApp/create", WhatsAppAccountViewSet.as_view({'post': 'create'}), name="WA_create"),
+    path("send_account/whatsApp/email/<int:pk>", WhatsAppAccountViewSet.as_view({'patch': 'partial_update'}),
+         name="WA_update"),
+    path("send_account/whatsApp/del/<int:pk>", WhatsAppAccountViewSet.as_view({'delete': 'destroy'}), name="WA_dell"),
+    path("send_account/whatsApp/login/<int:WA_id>", LoginWhatsAppAccount.as_view(), name="WA_login"),
+
+
+
     path('contact:check_all_whats_app_number', CheckAllWhatsAppNumber.as_view()),
     path('contact:check_whats_app_number', CheckWhatsAppContactsGroups.as_view()),
-    path("check_whatsapp_account", LoginWhatsAppAccount.as_view())
+
 ]

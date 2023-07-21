@@ -2,7 +2,7 @@ import datetime
 
 from rest_framework import viewsets, permissions
 from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail
-from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer
+from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from .services.user_service import user_create
@@ -13,11 +13,25 @@ from .services.whats_app_utils import get_active_whatsapp_account, check_whatsap
 from django.core.exceptions import ObjectDoesNotExist
 
 
+class WhatsAppAccountViewSet(viewsets.ModelViewSet):
+    serializer_class = WhatsAppAccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    def get_queryset(self):
+        qs = SenderPhoneNumber.objects.filter(owner=self.request.user)
+        return qs
+
+
 class EmailAccountViewSet(viewsets.ModelViewSet):
     serializer_class = EmailAccountSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
     def get_queryset(self):
         return SenderEmail.objects.filter(owner=self.request.user)
 
@@ -35,6 +49,7 @@ class ContactViewSet(viewsets.ModelViewSet):
 
 class CheckAllWhatsAppNumber(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         user = self.request.user
         auth_account = get_active_whatsapp_account(user=user)
@@ -68,14 +83,13 @@ class CheckWhatsAppContactsGroups(APIView):
 class LoginWhatsAppAccount(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def get(self, request, WA_id):
         user = request.user
-        check_phone = request.data.get("contact")
         try:
             response_data = {
                 "status": "FAIL TRY AGAIN"
             }
-            check_phone_obj = SenderPhoneNumber.objects.get(owner=user, contact=check_phone)
+            check_phone_obj = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
 
             if login_to_wa_account(session_number=check_phone_obj.session_number):
                 check_phone_obj.is_login = True
