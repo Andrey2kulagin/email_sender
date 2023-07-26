@@ -51,8 +51,10 @@ class CheckAllWhatsAppNumber(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        print("ТОТ МЕТОД ИСПОЛЬЗУЕТСЯ")
         user = self.request.user
         auth_account = get_active_whatsapp_account(user=user)
+        print(auth_account)
         if auth_account:
             contacts_for_checking = RecipientContact.objects.filter(owner=user, phone__isnull=False,
                                                                     is_phone_whatsapp_reg=False)

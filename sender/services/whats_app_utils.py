@@ -2,6 +2,7 @@ import datetime
 import time
 from selenium.webdriver.common.by import By
 import undetected_chromedriver
+from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from ..models import User, SenderPhoneNumber, RecipientContact
@@ -11,6 +12,8 @@ from io import BytesIO
 from django.db.models.query import QuerySet
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from django.core.exceptions import ObjectDoesNotExist
+import os
+from selenium.webdriver import ChromeOptions
 
 
 def get_user_queryset(groups: list[int], contacts: list[int], user: User):
@@ -34,10 +37,13 @@ def gen_qr_code(driver):
     driver.get("https://web.whatsapp.com/")
     # скриншот элемента страницы с QR-кодом
     try:
-        qr_element = WebDriverWait(driver, 10).until(
+        qr_element = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "canvas[aria-label='Scan me!']"))
         )
     except TimeoutException:
+        print("NUUUUUL")
+        driver.save_screenshot("screen.png")
+        driver.quit()
         return 0
     location = qr_element.location
     size = qr_element.size
@@ -50,13 +56,51 @@ def gen_qr_code(driver):
     im = im.crop((left, top, right, bottom))  # обрезка изображения по размерам элемента
     # сохранение изображения в файл
     im.save('qr_code.png')
+    print("QR_WAS_CREATE")
 
 
 def login_to_wa_account(driver=None, session_number=None):
+    try:
+        os.rmdir("whats_app_session/session_number")
+    except:
+        pass
+    account = SenderPhoneNumber.objects.get(id=session_number)
+    account.login_date = None
+    account.is_login = False
     if not driver:
         driver = create_wa_driver(session_number)
     gen_qr_code(driver)
-    print("after gen_qr")
+
+    result = check_login(driver)
+    driver.quit()
+    os.remove("qr_code.png")
+    return result
+
+
+def create_wa_driver(session_id=None):
+    chrome_options = ChromeOptions()
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--enable-logging')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument(
+        "user-agent=User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36")
+    chrome_options.add_argument('--headless')  # Включение headless режима
+
+    if session_id:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Создаем путь к папке для сохранения профиля
+        profile_dir = os.path.join(current_dir, f"whats_app_sessions/{session_id}")
+        print("Profile_DIR", profile_dir)
+        # Задаем путь к папке для сохранения профиля
+        chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.get("https://web.whatsapp.com/")
+    print(session_id)
+    return driver
+
+
+def check_login(driver):
     count_attempt = 0
     max_attempt = 15
     sleep_time = 10
@@ -66,19 +110,7 @@ def login_to_wa_account(driver=None, session_number=None):
         print("is_log=", is_log)
         count_attempt += 1
         is_log = is_login(driver=driver)
-    driver.quit()
     return count_attempt < max_attempt
-
-
-def create_wa_driver(session_id=None):
-    chrome_options = Options()
-    if session_id:
-        chrome_options.add_argument(f'--user-data-dir=./whats_app_session/{session_id}')
-
-    # chrome_options.add_argument("--headless")
-    driver = undetected_chromedriver.Chrome(options=chrome_options)
-    driver.get("https://web.whatsapp.com/")
-    return driver
 
 
 def is_login(session_id: str = None, driver=None):
@@ -105,7 +137,7 @@ def get_active_whatsapp_account(user: User, driver=None) -> SenderPhoneNumber:
     for login_acc in login_whats_app_acc:
         if not driver:
             driver = create_wa_driver(session_id=login_acc.session_number)
-        if login_to_wa_account(driver=driver, session_number=login_acc.session_number):
+        if check_login(driver=driver):
             driver.quit()
             print(login_acc)
             return login_acc
