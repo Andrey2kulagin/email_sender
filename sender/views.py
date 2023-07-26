@@ -13,6 +13,16 @@ from .services.whats_app_utils import get_active_whatsapp_account, check_whatsap
 from django.core.exceptions import ObjectDoesNotExist
 
 
+class ContactDeleteSeveral(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        groups = request.data.get("groups_ids", [])
+        contacts = request.data.get("contact_ids", [])
+
+
+
 class WhatsAppAccountViewSet(viewsets.ModelViewSet):
     serializer_class = WhatsAppAccountSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -51,7 +61,6 @@ class CheckAllWhatsAppNumber(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        print("ТОТ МЕТОД ИСПОЛЬЗУЕТСЯ")
         user = self.request.user
         auth_account = get_active_whatsapp_account(user=user)
         print(auth_account)

@@ -25,6 +25,7 @@ urlpatterns = [
     path('contact/create', ContactViewSet.as_view({'post': 'create'}), name="contact_create"),
     path('contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'partial_update'}), name="contact_update"),
     path('contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
+    path('contact/delete_several', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
 
     # email sender accounts
     path("send_account/email/<int:pk>", EmailAccountViewSet.as_view({'get': 'retrieve'}), name="email_get"),
@@ -40,12 +41,10 @@ urlpatterns = [
     path("send_account/whatsApp/<int:pk>", WhatsAppAccountViewSet.as_view({'get': 'retrieve'}), name="WA_get"),
     path("send_account/whatsApp/list", WhatsAppAccountViewSet.as_view({'get': 'list'}), name="WA_list"),
     path("send_account/whatsApp/create", WhatsAppAccountViewSet.as_view({'post': 'create'}), name="WA_create"),
-    path("send_account/whatsApp/email/<int:pk>", WhatsAppAccountViewSet.as_view({'patch': 'partial_update'}),
+    path("send_account/update/whatsApp/<int:pk>", WhatsAppAccountViewSet.as_view({'patch': 'partial_update'}),
          name="WA_update"),
     path("send_account/whatsApp/del/<int:pk>", WhatsAppAccountViewSet.as_view({'delete': 'destroy'}), name="WA_dell"),
     path("send_account/whatsApp/login/<int:WA_id>", LoginWhatsAppAccount.as_view(), name="WA_login"),
-
-
 
     path('contact:check_all_whats_app_number', CheckAllWhatsAppNumber.as_view()),
     path('contact:check_whats_app_number', CheckWhatsAppContactsGroups.as_view()),

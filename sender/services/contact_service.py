@@ -1,6 +1,29 @@
 from .all_service import phone_normalize, validate_email, is_valid_phone_number
 from rest_framework import serializers
 from ..models import RecipientContact
+from django.core.exceptions import ObjectDoesNotExist
+
+
+def delete_several_contacts(user, contacts_id, groups_id):
+    all_contact_ids = set()
+    dell_contact_ids = set()
+    for i in contacts_id:
+        all_contact_ids.add(i)
+        try:
+            RecipientContact.objects.get(owner=user, id=i).delete()
+            dell_contact_ids.add(i)
+        except ObjectDoesNotExist:
+            pass
+    for group_id in groups_id:
+        contacts = RecipientContact.objects.filter(owner=user, contact_group__id=group_id)
+        for contact in contacts:
+            all_contact_ids.add(contact.id)
+            dell_contact_ids.add(contact.id)
+            contact.delete()
+    return {
+        "success_delete": list(dell_contact_ids),
+        "fail_delete": list(all_contact_ids - dell_contact_ids)
+    }
 
 
 def recipient_contact_update(validated_data, instance):
