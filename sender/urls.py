@@ -2,7 +2,7 @@ from django.urls import path, include, re_path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
-    CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet
+    CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral
 
 urlpatterns = [
     # авторизация черех JVT
@@ -25,7 +25,7 @@ urlpatterns = [
     path('contact/create', ContactViewSet.as_view({'post': 'create'}), name="contact_create"),
     path('contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'partial_update'}), name="contact_update"),
     path('contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
-    path('contact/delete_several', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
+    path('contact/delete_several', ContactDeleteSeveral.as_view(), name="contact_several_delete"),
 
     # email sender accounts
     path("send_account/email/<int:pk>", EmailAccountViewSet.as_view({'get': 'retrieve'}), name="email_get"),

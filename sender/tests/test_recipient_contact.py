@@ -531,15 +531,25 @@ class RecipientContactListDetailDeleteTest(APITestCase):
     def test_list_contact_1(self):
         url = reverse('contact_list')
         self.client.force_authenticate(user=self.user, token=self.token)
-        response = self.client.get(url, format='json')
+        response = self.client.get(url, {"page_size": 1, "page": 2}, format='json')
         data = response.data
         self.assertEqual(200, response.status_code)
-        self.assertEqual(3, len(data))
+        self.assertEqual(3, data["count"])
+        self.assertEqual(2, data["results"][0]["id"])
 
     def test_list_contact_2(self):
         url = reverse('contact_list')
         response = self.client.get(url, format='json')
         self.assertEqual(401, response.status_code)
+
+    def test_list_contact_3(self):
+        url = reverse('contact_list')
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url, {"page_size": 4, "page": 1}, format='json')
+        data = response.data
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(3, data["count"])
+        self.assertEqual(3, len(data["results"]))
 
     def test_detail_contact_1(self):
         url = reverse('contact_detail', kwargs={'pk': 2})
@@ -578,3 +588,59 @@ class RecipientContactListDetailDeleteTest(APITestCase):
         url = reverse('contact_delete', kwargs={'pk': 2})
         response = self.client.delete(url, format='json')
         self.assertEqual(401, response.status_code)
+
+
+class RecipientContactSeveralDeleteTest(APITestCase):
+
+    def setUp(self):
+        # создание юзеров
+        self.user = User.objects.create_user(
+            username='testuser', email='testuser@mail.com', password='password')
+        self.token = Token.objects.create(user=self.user)
+        self.token.save()
+        # Создание групп контактов
+        self.first_user_group1 = ContactGroup.objects.create(user=self.user, title="Группа1 1 юзера")
+        self.first_user_group2 = ContactGroup.objects.create(user=self.user, title="Группа2 1 юзера")
+        self.first_user_group3 = ContactGroup.objects.create(user=self.user, title="Группа3 1 юзера")
+        # Создание писем
+        self.user1_letter_text = UserLetterText.objects.create(user=self.user, title="title1",
+                                                               letter_subject="letter_subject1", text="textlkajd")
+
+        # создание контактов
+        # 1 контакт( в 1 группе)
+        self.first_user_contact_1 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_1.contact_group.add(self.first_user_group1)
+        # 2 контакт(во 2 группе)
+
+        self.first_user_contact_2 = RecipientContact.objects.create(owner=self.user, name="user1_name2",
+                                                                    surname="user1_surname2", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_2.contact_group.add(self.first_user_group2)
+
+        # 3 контакт(в 3 группе)
+        self.first_user_contact_3 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_3.contact_group.add(self.first_user_group3)
+
+        # 4 контакт(без группы)
+        self.first_user_contact_4 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+
+    def test_several_del_contact_1(self):
+        url = reverse('contact_several_delete')
+        data = {
+            'contact_ids': [4, 1, 2, 7, 9],
+            'groups_ids': [2, 1],
+        }
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.post(url, data, format='json')
+        response_data = response.data
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(1, len(RecipientContact.objects.all()))
+        self.assertEqual(1, len(RecipientContact.objects.filter(id=3)))
+        self.assertEqual(response_data["success_delete"], [1, 2, 4])
+        self.assertEqual(len(response_data["fail_delete"]), 2)

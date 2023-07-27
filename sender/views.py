@@ -5,12 +5,14 @@ from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer
 from rest_framework import status
 from rest_framework.response import Response
-from .services.user_service import user_create
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account, \
     get_user_queryset
+from .services.user_service import user_create
+from .services.contact_service import delete_several_contacts
 from django.core.exceptions import ObjectDoesNotExist
+from .paginations import ContactPagination
 
 
 class ContactDeleteSeveral(APIView):
@@ -20,7 +22,8 @@ class ContactDeleteSeveral(APIView):
         user = request.user
         groups = request.data.get("groups_ids", [])
         contacts = request.data.get("contact_ids", [])
-
+        data = delete_several_contacts(user, contacts, groups)
+        return Response(status=200, data=data)
 
 
 class WhatsAppAccountViewSet(viewsets.ModelViewSet):
@@ -49,6 +52,7 @@ class EmailAccountViewSet(viewsets.ModelViewSet):
 class ContactViewSet(viewsets.ModelViewSet):
     serializer_class = RecipientContactSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = ContactPagination
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
