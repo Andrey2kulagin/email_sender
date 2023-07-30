@@ -44,7 +44,7 @@ class EmailAccountTest(APITestCase):
         url = reverse('email_list')
         self.client.force_authenticate(user=self.user, token=self.token)
         response = self.client.get(url, format='json')
-        data = response.data
+        data = response.data["results"]
         self.assertEqual(200, response.status_code)
         self.assertEqual(self.email_1.contact, data[0]["contact"])
         self.assertEqual(self.email_1.title, data[0]["title"])
@@ -152,6 +152,17 @@ class WhatsAppAccountTest(APITestCase):
         self.assertEqual(self.user, obj.owner)
         self.assertEqual(3, obj.id)
         self.assertEqual(False, obj.is_login)
+
+    def test_list_whats_1(self):
+        url = reverse('WA_list')
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url,{"page": 1, "page_size": 1}, format='json')
+        data = response.data["results"]
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(self.phone_1.id, data[0]["id"])
+        self.assertEqual(self.phone_1.contact, data[0]["contact"])
+        self.assertEqual(self.phone_1.title, data[0]["title"])
+        self.assertEqual(self.phone_1.is_login, data[0]["is_login"])
 
     def test_create_whats_2(self):
         url = reverse('WA_create')
