@@ -1,5 +1,4 @@
 from django.db import models
-
 # Create your models here.
 from django.contrib.auth.models import AbstractUser
 
@@ -16,6 +15,13 @@ class User(AbstractUser):
     end_of_subscription = models.DateField(verbose_name="Дата истечения подписки", null=True, blank=True)
     api_token = models.CharField(max_length=500, null=True)
 
+
+class Import(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.id)
 
 
 class ContactGroup(models.Model):
@@ -65,6 +71,7 @@ class RecipientContact(models.Model):
             return f"{self.owner.username} - {self.phone}"
         if self.email:
             return f"{self.owner.username} - {self.email}"
+        return f"{self.owner.username}"
 
 
 class SenderEmail(models.Model):

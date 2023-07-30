@@ -14,7 +14,12 @@ from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
 from .paginations import DefaultPagination
-from rest_framework.exceptions import MethodNotAllowed
+
+
+class LoadImportFile(APIView):
+    def post(self, request):
+        pass
+
 
 
 class ContactGroupRest(viewsets.ModelViewSet):
@@ -28,7 +33,6 @@ class ContactGroupRest(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = ContactGroup.objects.filter(user=self.request.user)
         return qs
-
 
 
 
