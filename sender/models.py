@@ -17,6 +17,7 @@ class User(AbstractUser):
     api_token = models.CharField(max_length=500, null=True)
 
 
+
 class ContactGroup(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(verbose_name="Группа контактов", max_length=100)

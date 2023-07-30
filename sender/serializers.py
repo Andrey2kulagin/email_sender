@@ -8,6 +8,8 @@ from .services.senders_account_service import email_check_null, whatsapp_check_n
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = ContactGroup
         fields = ('id', 'title')

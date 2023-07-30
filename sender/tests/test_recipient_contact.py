@@ -590,6 +590,62 @@ class RecipientContactListDetailDeleteTest(APITestCase):
         self.assertEqual(401, response.status_code)
 
 
+
+
+class RecipientContactInGroupCountTest(APITestCase):
+
+    def setUp(self):
+        # создание юзеров
+        self.user = User.objects.create_user(
+            username='testuser', email='testuser@mail.com', password='password')
+        self.token = Token.objects.create(user=self.user)
+        self.token.save()
+        self.second_user = User.objects.create_user(
+            username='seconduser', email='testur@mail.com', password='password')
+        self.second_token = Token.objects.create(user=self.second_user)
+        self.second_token.save()
+        # Создание групп контактов
+        self.first_user_group1 = ContactGroup.objects.create(user=self.user, title="Группа1 1 юзера")
+        self.first_user_group2 = ContactGroup.objects.create(user=self.user, title="Группа2 1 юзера")
+        self.first_user_group3 = ContactGroup.objects.create(user=self.user, title="Группа3 1 юзера")
+        self.second_user_group1 = ContactGroup.objects.create(user=self.second_user, title="Группа1 2 юзера")
+        self.second_user_group2 = ContactGroup.objects.create(user=self.second_user, title="Группа2 2 юзера")
+        self.second_user_group3 = ContactGroup.objects.create(user=self.second_user, title="Группа3 2 юзера")
+
+        # создание контактов
+        self.first_user_contact_1 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_1.contact_group.add(self.first_user_group1)
+        self.first_user_contact_2 = RecipientContact.objects.create(owner=self.user, name="user1_name2",
+                                                                    surname="user1_surname2", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_2.contact_group.add(self.first_user_group1)
+
+        self.first_user_contact_3 = RecipientContact.objects.create(owner=self.user, name="user1_name",
+                                                                    surname="user1_surname", phone="89753412148",
+                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_3.contact_group.add(self.first_user_group2)
+
+        self.second_user_contact_1 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
+                                                                     surname="user1_surname", phone="89753412148",
+                                                                     email="user1@mail.com", comment="comment")
+        self.second_user_contact_1.contact_group.add(self.second_user_group1)
+
+    def test_group_count_1(self):
+        url = reverse("contact_count_in_group", kwargs={'pk':  1})
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url, format='json')
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(2, response.data["count"])
+
+
+    def test_group_count_2(self):
+        url = reverse("contact_count_in_group", kwargs={'pk':  4})
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url, format='json')
+        self.assertEqual(404, response.status_code)
+
 class RecipientContactSeveralDeleteTest(APITestCase):
 
     def setUp(self):

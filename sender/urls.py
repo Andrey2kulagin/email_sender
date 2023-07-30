@@ -2,7 +2,8 @@ from django.urls import path, include, re_path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
-    CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral
+    CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
+    GetContactsInGroupCount
 
 urlpatterns = [
     # авторизация черех JVT
@@ -26,6 +27,9 @@ urlpatterns = [
     path('contact/update/<int:pk>', ContactViewSet.as_view({'patch': 'partial_update'}), name="contact_update"),
     path('contact/del/<int:pk>', ContactViewSet.as_view({'delete': 'destroy'}), name="contact_delete"),
     path('contact/delete_several', ContactDeleteSeveral.as_view(), name="contact_several_delete"),
+    path('contact:check_all_whats_app_number', CheckAllWhatsAppNumber.as_view()),
+    path('contact:check_whats_app_number', CheckWhatsAppContactsGroups.as_view()),
+    path('contact/get_in_group_count/<int:pk>', GetContactsInGroupCount.as_view(), name="contact_count_in_group"),
 
     # email sender accounts
     path("send_account/email/<int:pk>", EmailAccountViewSet.as_view({'get': 'retrieve'}), name="email_get"),
@@ -46,7 +50,18 @@ urlpatterns = [
     path("send_account/whatsApp/del/<int:pk>", WhatsAppAccountViewSet.as_view({'delete': 'destroy'}), name="WA_dell"),
     path("send_account/whatsApp/login/<int:WA_id>", LoginWhatsAppAccount.as_view(), name="WA_login"),
 
-    path('contact:check_all_whats_app_number', CheckAllWhatsAppNumber.as_view()),
-    path('contact:check_whats_app_number', CheckWhatsAppContactsGroups.as_view()),
+
+
+
+    # Группы контактов
+    #rest
+    path("contact_group/<int:pk>", ContactGroupRest.as_view({'get': 'retrieve'}), name="contact_group_get"),
+    path("contact_group/list", ContactGroupRest.as_view({'get': 'list'}), name="contact_group_list"),
+    path("contact_group/create", ContactGroupRest.as_view({'post': 'create'}), name="contact_group_create"),
+    path("contact_group/update/<int:pk>", ContactGroupRest.as_view({'patch': 'partial_update'}),
+         name="contact_group_update"),
+    path("contact_group/replace/<int:pk>", ContactGroupRest.as_view({'put': 'update'}),
+         name="contact_group_replace"),
+    path("contact_group/del/<int:pk>", ContactGroupRest.as_view({'delete': 'destroy'}), name="contact_group_delete"),
 
 ]

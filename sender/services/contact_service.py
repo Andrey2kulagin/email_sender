@@ -4,6 +4,11 @@ from ..models import RecipientContact
 from django.core.exceptions import ObjectDoesNotExist
 
 
+def get_group_contact_count(user, pk):
+    qs = RecipientContact.objects.filter(owner=user, contact_group__id=pk)
+    return qs.count()
+
+
 def delete_several_contacts(user, contacts_id, groups_id):
     all_contact_ids = set()
     dell_contact_ids = set()

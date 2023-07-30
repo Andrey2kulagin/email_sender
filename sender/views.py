@@ -1,8 +1,9 @@
 import datetime
 
 from rest_framework import viewsets, permissions
-from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail
-from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer
+from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup
+from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
+    ContactGroupSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,9 +11,34 @@ from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account, \
     get_user_queryset
 from .services.user_service import user_create
-from .services.contact_service import delete_several_contacts
+from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
-from .paginations import ContactPagination
+from .paginations import DefaultPagination
+from rest_framework.exceptions import MethodNotAllowed
+
+
+class ContactGroupRest(viewsets.ModelViewSet):
+    serializer_class = ContactGroupSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['get', 'post', 'patch', 'delete']
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        qs = ContactGroup.objects.filter(user=self.request.user)
+        return qs
+
+
+
+
+class GetContactsInGroupCount(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        if ContactGroup.objects.filter(user=request.user, id=pk).count() == 0:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=200, data={"count": get_group_contact_count(request.user, pk)})
 
 
 class ContactDeleteSeveral(APIView):
@@ -52,7 +78,7 @@ class EmailAccountViewSet(viewsets.ModelViewSet):
 class ContactViewSet(viewsets.ModelViewSet):
     serializer_class = RecipientContactSerializer
     permission_classes = [permissions.IsAuthenticated]
-    pagination_class = ContactPagination
+    pagination_class = DefaultPagination
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
