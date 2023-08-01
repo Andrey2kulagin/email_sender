@@ -16,6 +16,12 @@ class User(AbstractUser):
     api_token = models.CharField(max_length=500, null=True)
 
 
+class ContactImportFiles(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    filename = models.CharField(max_length=100)
+
+
 class Import(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)

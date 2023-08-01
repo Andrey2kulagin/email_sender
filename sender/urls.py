@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
-    GetContactsInGroupCount
+    GetContactsInGroupCount, LoadImportFile
 
 urlpatterns = [
     # авторизация черех JVT
@@ -63,5 +63,10 @@ urlpatterns = [
     path("contact_group/replace/<int:pk>", ContactGroupRest.as_view({'put': 'update'}),
          name="contact_group_replace"),
     path("contact_group/del/<int:pk>", ContactGroupRest.as_view({'delete': 'destroy'}), name="contact_group_delete"),
+    
 
+
+    #import
+    path("import/file_upload", LoadImportFile.as_view(), name="import_file_upload"),
+    
 ]

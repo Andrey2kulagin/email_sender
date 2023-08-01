@@ -7,6 +7,9 @@ from .services.contact_service import recipient_contact_patch_validate, recipien
 from .services.senders_account_service import email_check_null, whatsapp_check_null
 
 
+class ImportFileUploadSerializer(serializers.Serializer):
+       file = serializers.FileField()
+
 class ContactGroupSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
 

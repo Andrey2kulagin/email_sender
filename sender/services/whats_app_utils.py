@@ -60,7 +60,7 @@ def gen_qr_code(driver):
 
 def login_to_wa_account(driver=None, session_number=None):
     try:
-        os.rmdir("whats_app_session/session_number")
+        os.rmdir(f"whats_app_session/{session_number}")
     except:
         pass
     account = SenderPhoneNumber.objects.get(id=session_number)

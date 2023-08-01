@@ -3,7 +3,7 @@ import datetime
 from rest_framework import viewsets, permissions
 from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
-    ContactGroupSerializer
+    ContactGroupSerializer, ImportFileUploadSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,12 +14,18 @@ from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
 from .paginations import DefaultPagination
+from .services.contact_import_service import file_upload_handler
 
 
 class LoadImportFile(APIView):
     def post(self, request):
-        pass
-
+        serializer = ImportFileUploadSerializer(data=request.data)
+        if serializer.is_valid():
+            file = serializer.validated_data['file']
+            user = request.user
+            return file_upload_handler(file, user)
+        else:
+            return Response(serializer.errors, status=400)
 
 
 class ContactGroupRest(viewsets.ModelViewSet):
@@ -33,7 +39,6 @@ class ContactGroupRest(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = ContactGroup.objects.filter(user=self.request.user)
         return qs
-
 
 
 class GetContactsInGroupCount(APIView):

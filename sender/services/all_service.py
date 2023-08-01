@@ -3,6 +3,12 @@ from sender.models import RecipientContact, User
 import re
 from django.core.validators import validate_email
 from rest_framework import serializers
+import os
+
+
+def check_or_create_folder(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
 
 def phone_normalize(number: str) -> str:
@@ -37,8 +43,3 @@ def send_password(email: str, password: str):
         [email],
         fail_silently=False,
     )
-
-
-
-
-
