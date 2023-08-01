@@ -5,6 +5,19 @@ import os
 from ..models import User
 from .all_service import check_or_create_folder
 from ..models import ContactImportFiles
+from rest_framework import serializers, exceptions
+from django.core.exceptions import ObjectDoesNotExist
+
+
+def contact_import_request_data_validate(data, user):
+    filename = data.get("filename")
+    try:
+        ContactImportFiles.objects.get(owner=user, filename=filename)
+    except ObjectDoesNotExist:
+        raise exceptions.NotFound("Такого файла нет на сервере")
+
+    if data.get("phone") or data.get("email") != True:
+        raise serializers.ValidationError("Должен быть хотя бы 1 контакт")
 
 
 def file_upload_handler(file: InMemoryUploadedFile, user: User):

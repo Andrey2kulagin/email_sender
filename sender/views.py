@@ -3,7 +3,7 @@ import datetime
 from rest_framework import viewsets, permissions
 from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
-    ContactGroupSerializer, ImportFileUploadSerializer
+    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,7 +17,19 @@ from .paginations import DefaultPagination
 from .services.contact_import_service import file_upload_handler
 
 
-class LoadImportFile(APIView):
+class ContactRunImport(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ContactRunImportSerializer
+
+    def post(self, request):
+        serializer = ContactRunImportSerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(200)
+
+
+class LoadContactImportFile(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
         serializer = ImportFileUploadSerializer(data=request.data)
         if serializer.is_valid():
