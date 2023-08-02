@@ -7,24 +7,25 @@ from .services.user_service import user_data_validate
 from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid, \
     set_m2m_fields_to_recipient_contact, recipient_contact_update
 from .services.senders_account_service import email_check_null, whatsapp_check_null
-from .services.contact_import_service import contact_import_request_data_validate
+from .services.contact_import_service import contact_import_run_request_data_validate
 
 
 class ContactRunImportSerializer(serializers.Serializer):
+    filename = serializers.CharField(max_length=100, required=True)
+
+    id = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    name = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    surname = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    email = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    phone = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    contact_group = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    comment = serializers.IntegerField(max_value=20, required=True, allow_null=True)
 
     def validate(self, data):
         request = self.context.get('request')
         user = request.user
-        contact_import_request_data_validate(data, user)
+        contact_import_run_request_data_validate(data, user)
         return data
-
-    filename = serializers.CharField(max_length=100, required=True)
-    id = serializers.IntegerField(max_value=20)
-    name = serializers.IntegerField(max_value=20)
-    surname = serializers.IntegerField(max_value=20)
-    email = serializers.IntegerField(max_value=20)
-    contact_group = serializers.IntegerField(max_value=20)
-    comment = serializers.IntegerField(max_value=20)
 
 
 class ImportFileUploadSerializer(serializers.Serializer):

@@ -19,12 +19,12 @@ from .services.contact_import_service import file_upload_handler
 
 class ContactRunImport(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = ContactRunImportSerializer
 
     def post(self, request):
-        serializer = ContactRunImportSerializer(data=request.data)
+        serializer = ContactRunImportSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             return Response(200)
+        return Response(status=400, data=serializer.errors)
 
 
 class LoadContactImportFile(APIView):
