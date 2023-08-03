@@ -38,7 +38,7 @@ class ImportRunRequestDataValidateTest(APITestCase):
         self.assertEqual(400, response.status_code)
 
     def test_import_run_validate_2(self):
-        # слишком большой id
+        # слишком большой индекс id
         url = reverse('import_run')
         self.client.force_authenticate(user=self.user, token=self.token)
         request_data = {
@@ -121,6 +121,7 @@ class ImportFileUploadTest(APITestCase):
         self.assertEqual(1, len(contact_objs))
         self.assertEqual(contact_objs[0].filename, "1.xlsx")
         self.assertEqual(contact_objs[0].row_len, 20)
+        self.assertEqual(contact_objs[0].is_contains_headers, False)
 
     def test_2(self):
         url = reverse('import_file_upload')
@@ -137,3 +138,34 @@ class ImportFileUploadTest(APITestCase):
         self.assertEqual("11.xlsx", data.get("file_name_on_serv"))
         shutil.rmtree(f"sources/import_file/{self.user.username}")
         self.assertEqual(1, len(ContactImportFiles.objects.filter(owner=self.user, filename="11.xlsx")))
+
+    def test_3(self):
+        url = reverse('import_file_upload')
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.post(url,
+                                    {'file': open("sender/tests/test_service/contact_import_test_file/3.xlsx", 'rb'),
+                                     'is_contains_headers': True}
+                                    )
+        data = response.data
+        result = data["results"]
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(True, os.path.exists(f"sources/import_file/{self.user.username}"))
+        self.assertEqual(True, os.path.exists(f"sources/import_file/{self.user.username}/3.xlsx"))
+        shutil.rmtree(f"sources/import_file/{self.user.username}")
+        self.assertEqual("3.xlsx", data.get("file_name_on_serv"))
+        self.assertEqual(data["count_elements_in_line"], 20)
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(len(result), 3)
+
+        self.assertEqual(len(result[1]), 20)
+        self.assertEqual(len(result[0]), 20)
+        self.assertEqual(result[0][5], "Поле 6")
+        self.assertEqual(result[1][5], "1")
+        self.assertEqual(len(result[2]), 20)
+        self.assertEqual(result[2][1], "value 1")
+        self.assertEqual(result[2][2], "Значение 2")
+        contact_objs = ContactImportFiles.objects.filter(owner=self.user, filename="3.xlsx")
+        self.assertEqual(1, len(contact_objs))
+        self.assertEqual(contact_objs[0].filename, "3.xlsx")
+        self.assertEqual(contact_objs[0].row_len, 20)
+        self.assertEqual(contact_objs[0].is_contains_headers, True)

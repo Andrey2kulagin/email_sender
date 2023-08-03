@@ -13,13 +13,13 @@ from .services.contact_import_service import contact_import_run_request_data_val
 class ContactRunImportSerializer(serializers.Serializer):
     filename = serializers.CharField(max_length=100, required=True)
 
-    id = serializers.IntegerField(max_value=20, required=True, allow_null=True)
-    name = serializers.IntegerField(max_value=20, required=True, allow_null=True)
-    surname = serializers.IntegerField(max_value=20, required=True, allow_null=True)
-    email = serializers.IntegerField(max_value=20, required=True, allow_null=True)
-    phone = serializers.IntegerField(max_value=20, required=True, allow_null=True)
-    contact_group = serializers.IntegerField(max_value=20, required=True, allow_null=True)
-    comment = serializers.IntegerField(max_value=20, required=True, allow_null=True)
+    id = serializers.IntegerField(max_value=20, default=None, allow_null=True)
+    name = serializers.IntegerField(max_value=20, default=None, allow_null=True)
+    surname = serializers.IntegerField(max_value=20, default=None, allow_null=True)
+    email = serializers.IntegerField(max_value=20, default=None, allow_null=True)
+    phone = serializers.IntegerField(max_value=20, default=None, allow_null=True)
+    contact_group = serializers.IntegerField(max_value=20, default=None, allow_null=True)
+    comment = serializers.IntegerField(max_value=20, default=None, allow_null=True)
 
     def validate(self, data):
         request = self.context.get('request')
@@ -36,6 +36,7 @@ class ImportFileUploadSerializer(serializers.Serializer):
         return data
 
     file = serializers.FileField()
+    is_contains_headers = serializers.BooleanField(default=False)
 
 
 class ContactGroupSerializer(serializers.ModelSerializer):

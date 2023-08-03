@@ -216,6 +216,23 @@ class RecipientContactCreateTest(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(400, response.status_code)
 
+    def test_create_contact_5(self):
+        url = reverse('contact_create')
+        data = {
+            'email': "eaqwwda@yandex.ru",
+            'name': "andrey",
+            'surname': "my_surname",
+            'phone': '89753428790',
+            'contact_group': [4],
+            "senders": [1, 2, 3],
+            'comment': 'smart comment',
+        }
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.post(url, data, format='json')
+        data = response.data
+        self.assertEqual(400, response.status_code)
+
+
 
 class RecipientContactUpdateTest(APITestCase):
 
@@ -590,8 +607,6 @@ class RecipientContactListDetailDeleteTest(APITestCase):
         self.assertEqual(401, response.status_code)
 
 
-
-
 class RecipientContactInGroupCountTest(APITestCase):
 
     def setUp(self):
@@ -633,18 +648,18 @@ class RecipientContactInGroupCountTest(APITestCase):
         self.second_user_contact_1.contact_group.add(self.second_user_group1)
 
     def test_group_count_1(self):
-        url = reverse("contact_count_in_group", kwargs={'pk':  1})
+        url = reverse("contact_count_in_group", kwargs={'pk': 1})
         self.client.force_authenticate(user=self.user, token=self.token)
         response = self.client.get(url, format='json')
         self.assertEqual(200, response.status_code)
         self.assertEqual(2, response.data["count"])
 
-
     def test_group_count_2(self):
-        url = reverse("contact_count_in_group", kwargs={'pk':  4})
+        url = reverse("contact_count_in_group", kwargs={'pk': 4})
         self.client.force_authenticate(user=self.user, token=self.token)
         response = self.client.get(url, format='json')
         self.assertEqual(404, response.status_code)
+
 
 class RecipientContactSeveralDeleteTest(APITestCase):
 

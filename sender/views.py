@@ -35,7 +35,8 @@ class LoadContactImportFile(APIView):
         if serializer.is_valid():
             file = serializer.validated_data['file']
             user = request.user
-            return file_upload_handler(file, user)
+            is_contains_headers = serializer.validated_data['is_contains_headers']
+            return file_upload_handler(file, user, is_contains_headers)
         else:
             return Response(serializer.errors, status=400)
 

@@ -3,9 +3,8 @@ from unittest import TestCase
 from ...services.contact_import_service import get_start_data_from_imp, get_cure_filename
 import os
 import shutil
+
 current_path = os.path.abspath(__file__)
-
-
 
 
 class GetStartDataTestCase(TestCase):

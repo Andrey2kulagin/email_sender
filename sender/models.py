@@ -21,6 +21,7 @@ class ContactImportFiles(models.Model):
     date = models.DateField(auto_now_add=True)
     filename = models.CharField(max_length=100)
     row_len = models.IntegerField()
+    is_contains_headers = models.BooleanField(default=False, null=True)
 
 
 class Import(models.Model):
