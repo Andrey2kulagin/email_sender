@@ -2,29 +2,42 @@ import openpyxl
 from rest_framework.response import Response
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import os
-from ..models import User, RecipientContact, ContactGroup
+from ..models import User, RecipientContact, ContactGroup, ContactImportFiles
 from .all_service import check_or_create_folder
-from ..models import ContactImportFiles
 from rest_framework import serializers, exceptions
 from django.core.exceptions import ObjectDoesNotExist
 import copy
 from .contact_service import email_validate, phone_validate
 
 
-def contact_import(validate_data: dict, user: User, import_id):
+def contact_import(validate_data: dict, user: User):
     filename = validate_data.get("filename")
+    statistics = {
+        "OK": 0,
+        "PF": 0,
+        "FF": 0,
+        "all_count": 0
+    }
     if filename:
         mask = copy.deepcopy(validate_data)
         error_rows = [get_errors_headers(mask)]
         del mask["filename"]
         workbook = openpyxl.load_workbook(f"sources/{user}/{filename}")
         sheet = workbook.active
+        import_obj = ContactImportFiles.objects.get(owner=user, filename=filename)
+        is_imported_flag = import_obj.is_imported
         # обработка самого файла построчно
         for row in sheet.iter_rows(values_only=True):
             # валидация строки запись контакта в БД
-            import_contact_row_handler(row, mask, user, error_rows)
+            if is_imported_flag:
+                is_imported_flag = False
+                continue
+            statistics[import_contact_row_handler(row, mask, user, error_rows)] += 1
+            statistics["all_count"] += 1
         # запись данных об ошибках в файл
-        write_errors(error_rows, user, import_id)
+        import_obj.is_imported = True
+        import_obj.save()
+        write_errors(error_rows, user, import_obj.id)
 
 
 def write_array(filename, array):
@@ -75,6 +88,7 @@ def import_contact_row_handler(row: list[str], mask: dict[str: int], user: User,
             error_rows.append(get_error_row(errors, row, comment, contact_id, mask["id"], status))
     elif status == "FF":
         error_rows.append(get_error_row(errors, row, comment, None, mask["id"], status))
+    return status
 
 
 def get_error_row(errors: dict, row: list[str], comment: str, contact_id: (int, None), id_index: int, status) -> list[
@@ -214,6 +228,8 @@ def contact_import_run_request_data_validate(data, user):
     filename = data.get("filename")
     try:
         obj = ContactImportFiles.objects.get(owner=user, filename=filename)
+        if obj.is_imported:
+            raise serializers.ValidationError("Этот файл уже импортирован")
         row_len = obj.row_len
         param_fields_name = ["id", "name", "surname", "email", "contact_group", "comment"]
         fail_params = []
