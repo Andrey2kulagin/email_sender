@@ -22,14 +22,10 @@ class ContactImportFiles(models.Model):
     filename = models.CharField(max_length=100)
     row_len = models.IntegerField()
     is_contains_headers = models.BooleanField(default=False, null=True)
-
-
-class Import(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add=True)
+    is_imported = models.BooleanField(default=False, null=True)
 
     def __str__(self):
-        return str(self.id)
+        return self.id
 
 
 class ContactGroup(models.Model):

@@ -11,22 +11,52 @@ import copy
 from .contact_service import email_validate, phone_validate
 
 
-def contact_import(validate_data: dict, user: User):
+def contact_import(validate_data: dict, user: User, import_id):
     filename = validate_data.get("filename")
     if filename:
-        error_rows = []
         mask = copy.deepcopy(validate_data)
+        error_rows = [get_errors_headers(mask)]
         del mask["filename"]
         workbook = openpyxl.load_workbook(f"sources/{user}/{filename}")
         sheet = workbook.active
+        # обработка самого файла построчно
         for row in sheet.iter_rows(values_only=True):
+            # валидация строки запись контакта в БД
             import_contact_row_handler(row, mask, user, error_rows)
-    # обработка самого файла построчно
+        # запись данных об ошибках в файл
+        write_errors(error_rows, user, import_id)
 
-    # валидация строки
-    # запись контакта в БД
-    # запись данных об ошибках в файл
-    pass
+
+def write_array(filename, array):
+    wb = openpyxl.load_workbook(filename)
+    ws = wb.active
+    for row in array:
+        ws.append(row)
+    wb.save(filename)
+
+
+def write_errors(error_rows, user, import_id):
+    dir_path = f"sources/contact_bug_reports/{user.username}/"
+    check_or_create_folder(dir_path)
+    filename = f"{import_id}.xlsx"
+    write_array(dir_path + filename, error_rows)
+
+
+def get_errors_headers(mask):
+    row = ["Критическая ошибка(создать не удалось)", "Некритическая ошибка (удалось создать частично)"]
+    if mask.get("id") is None:
+        row.append("id")
+    keys_row = []
+    for key in mask:
+        cure_index = mask[key]
+        if cure_index:
+            keys_row_len = len(keys_row)
+            if keys_row_len < cure_index:
+                for i in range(keys_row_len - cure_index):
+                    keys_row.append("")
+            keys_row[cure_index] = key
+    row.extend(keys_row)
+    return row
 
 
 def import_contact_row_handler(row: list[str], mask: dict[str: int], user: User, error_rows: list[list[str]]):
@@ -34,30 +64,78 @@ def import_contact_row_handler(row: list[str], mask: dict[str: int], user: User,
     if cure_values.get("id"):
         # обрабатываем update
         validate_result = import_contact_update_validate(cure_values, user)
-        import_update(row, validate_result, user, error_rows)
     else:
         validate_result = import_contact_create_validate(cure_values, user)
-
-
-def import_update(cure_values: list[str], validate_result: dict, user: User, error_rows: list[list[str]]):
     status = validate_result.get("status", "")
     errors = validate_result.get("errors")
     comment = validate_result.get("comment")
     if status in ["OK", "PF"]:
-
-
+        contact_id = save_contact(user, cure_values, errors)
+        if contact_id and status == "PF":
+            error_rows.append(get_error_row(errors, row, comment, contact_id, mask["id"], status))
     elif status == "FF":
-        pass
+        error_rows.append(get_error_row(errors, row, comment, None, mask["id"], status))
 
 
-def save_contact(user, cure_values):
-    contact = RecipientContact()
-    contact.owner = user
+def get_error_row(errors: dict, row: list[str], comment: str, contact_id: (int, None), id_index: int, status) -> list[
+    str]:
+    error_row = []
+    error_str = ""
+    # добавляем коммент
+    if comment:
+        error_str += comment
+        error_str += "\n\n"
+    error_str += "errors:\n"
+    count = 1
+    # добавляем ошибки
+    for error in errors:
+        error_str += f"{count}. {errors[error]}\n"
+    if status == "PF":
+        error_row.append("")
+        error_row.append(error_str)
+    else:
+        error_row.append(error_str)
+        error_row.append("")
+    # добавляем id
+    if id_index:
+        if row[id_index] is None:
+            if contact_id:
+                row[id_index] = str(contact_id)
+            else:
+                row[id_index] = ""
+    else:
+        if contact_id:
+            error_row.append(str(contact_id))
+        else:
+            error_row.append("")
+    error_row.extend(row)
+    return error_row
+
+
+def save_contact(user: User, cure_values: dict, errors: dict):
+    cure_contact_id = cure_values.get("id")
+    if cure_contact_id:
+        try:
+            contact = RecipientContact.objects.get(owner=user, id=cure_contact_id)
+        except ObjectDoesNotExist:
+            return
+    else:
+        contact = RecipientContact()
+        contact.owner = user
+    groups = cure_values["contact_group"].split(";")
+    del cure_values["contact_group"]
     for key in cure_values:
         value = cure_values.get(key)
-        if value:
+        if value and key not in errors:
             setattr(contact, key, value)
+    for group in groups:
+        try:
+            group = ContactGroup.objects.get(user=user, title=group.strip)
+            contact.contact_group.add(group)
+        except ObjectDoesNotExist:
+            continue
     contact.save()
+    return contact.id
 
 
 def import_contact_update_validate(cure_values, user):
@@ -117,7 +195,7 @@ def add_groups_errors(cure_values, user, errors):
             try:
                 ContactGroup.objects.get(user=user, title=group.strip())
             except ObjectDoesNotExist:
-                errors[f"group {group}"] = "У вас нет такой группы"
+                errors[f"group :{group}"] = "У вас нет такой группы"
 
 
 def get_cure_value(row: list[str], mask: dict[str: int]):
