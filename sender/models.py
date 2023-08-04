@@ -23,6 +23,10 @@ class ContactImportFiles(models.Model):
     row_len = models.IntegerField()
     is_contains_headers = models.BooleanField(default=False, null=True)
     is_imported = models.BooleanField(default=False, null=True)
+    all_handled_lines = models.IntegerField(default=None, null=True)
+    success_create_update_count = models.IntegerField(default=None, null=True)
+    partial_success_create_update_count = models.IntegerField(default=None, null=True)
+    fail_count = models.IntegerField(default=None, null=True)
 
     def __str__(self):
         return self.id

@@ -14,7 +14,7 @@ from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
 from .paginations import DefaultPagination
-from .services.contact_import_service import file_upload_handler
+from .services.contact_import_service import file_upload_handler, contact_import
 
 
 class ContactRunImport(APIView):
@@ -23,7 +23,16 @@ class ContactRunImport(APIView):
     def post(self, request):
         serializer = ContactRunImportSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            return Response(200)
+            user = request.user
+            validated_data = serializer.validated_data
+            statistics = contact_import(validated_data, user)
+            response_data = {
+                "all_handled_lines": statistics["all_count"],
+                "success_create_update_count": statistics["OK"],
+                "partial_success_create_update_count": statistics["PF"],
+                "fail_count": statistics["FF"]
+            }
+            return Response(status=200, data=response_data)
         return Response(status=400, data=serializer.errors)
 
 
