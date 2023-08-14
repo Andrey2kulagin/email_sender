@@ -1,13 +1,23 @@
 from abc import ABC
 
 from rest_framework import serializers
-from .models import RecipientContact, User, ContactGroup, UserSenders, SenderEmail, SenderPhoneNumber
+from .models import RecipientContact, User, ContactGroup, UserSenders, SenderEmail, SenderPhoneNumber, \
+    ContactImportFiles
 from sender.services.all_service import phone_normalize, is_valid_phone_number
 from .services.user_service import user_data_validate
 from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid, \
     set_m2m_fields_to_recipient_contact, recipient_contact_update
 from .services.senders_account_service import email_check_null, whatsapp_check_null
 from .services.contact_import_service import contact_import_run_request_data_validate
+
+
+class ImportSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = ContactImportFiles
+        fields = ('id', 'filename', 'date', 'is_imported', 'all_handled_lines', 'success_create_update_count',
+                  'partial_success_create_update_count', 'fail_count')
 
 
 class ContactRunImportSerializer(serializers.Serializer):

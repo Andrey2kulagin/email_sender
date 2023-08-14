@@ -1,9 +1,11 @@
 import datetime
 
 from rest_framework import viewsets, permissions
-from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup
+from rest_framework.viewsets import GenericViewSet
+
+from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
-    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer
+    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,7 +16,35 @@ from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
 from .paginations import DefaultPagination
-from .services.contact_import_service import file_upload_handler, contact_import
+from .services.contact_import_service import file_upload_handler, contact_import, gen_path_to_import_report
+from rest_framework import mixins
+from django.http import FileResponse
+
+
+class ImportBugsFileAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, import_id):
+        # Путь к файлу, который нужно вернуть
+        user = request.user
+        res = gen_path_to_import_report(user, import_id)
+        if type(res) != str:
+            return Response(status=res)
+        # Открываем файл в режиме "бинарное чтение"
+        file = open(res, 'rb')
+
+        # Возвращаем файл в ответ на GET-запрос
+        response = FileResponse(file)
+        return response
+
+
+class ImportViewSet(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+    serializer_class = ImportSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = ContactImportFiles.objects.filter(owner=self.request.user)
+        return qs
 
 
 class ContactRunImport(APIView):

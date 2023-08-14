@@ -41,48 +41,37 @@ class ImportRunTest(APITestCase):
         self.second_user_group1 = ContactGroup.objects.create(user=self.second_user, title="Группа1 2 юзера")  # 4
         self.second_user_group2 = ContactGroup.objects.create(user=self.second_user, title="Группа2 2 юзера")  # 5
         self.second_user_group3 = ContactGroup.objects.create(user=self.second_user, title="Группа3 2 юзера")  # 6
-        # Создание писем
         # создание контактов
         self.first_user_contact_1 = RecipientContact.objects.create(owner=self.user, name="user1_name",  # 1
                                                                     surname="user1_surname", phone="89753412148",
                                                                     email="user1@mail.com", comment="comment")
         self.first_user_contact_1.contact_group.add(self.first_user_group1)
         self.first_user_contact_1.contact_group.add(self.first_user_group2)
-        self.first_user_contact_2 = RecipientContact.objects.create(owner=self.user, name="user1_name",  # 2
-                                                                    surname="user1_surname", phone="89753412148",
-                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_2 = RecipientContact.objects.create(owner=self.user, name="user2_name",  # 2
+                                                                    surname="user2_surname", phone="89753412148",
+                                                                    email="user2@mail.com", comment="comment")
         self.first_user_contact_2.contact_group.add(self.first_user_group2)
         self.first_user_contact_2.contact_group.add(self.first_user_group3)
 
-        self.first_user_contact_3 = RecipientContact.objects.create(owner=self.user, name="user1_name",  # 3
-                                                                    surname="user1_surname", phone="89753412148",
-                                                                    email="user1@mail.com", comment="comment")
+        self.first_user_contact_3 = RecipientContact.objects.create(owner=self.user, name="user3_name",  # 3
+                                                                    surname="user3_surname", phone="89753412148",
+                                                                    email="user3@mail.com", comment="comment")
         self.first_user_contact_3.contact_group.add(self.first_user_group2)
         self.first_user_contact_3.contact_group.add(self.first_user_group3)
 
-        self.second_user_contact_1 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",  # 4
-                                                                     surname="user1_surname", phone="89753412148",
-                                                                     email="user1@mail.com", comment="comment")
+        self.second_user_contact_1 = RecipientContact.objects.create(owner=self.second_user, name="user1_1_name",  # 4
+                                                                     surname="user1_1_surname", phone="89753412148",
+                                                                     email="user1_1@mail.com", comment="comment")
 
     @classmethod
     def tearDownClass(self):
         # Путь к папке, где хранятся созданные файлы
         folder_path = f"sources/import_file/testuser"
-
         if os.path.exists(folder_path):
             # Удаление папки
             shutil.rmtree(folder_path)
-            print("Папка успешно удалена")
-        else:
-            print("Папка не найдена")
 
     def test_import_run_1(self):
-        contact_1_obj = RecipientContact.objects.get(id=1)
-        a = [self.first_user_group1, self.first_user_group2, self.first_user_group3]
-        print("GROUPS!!!!", contact_1_obj.contact_group.title)
-        for el in a:
-            self.assertEqual(True, el in contact_1_obj.contact_group)
-        contact_2_obj = RecipientContact.objects.get(id=2)
         url = reverse('import_run')
         # Всего 6 контактов, обновление у 2(1 норм, у второго невалидная группа), загрузка 1 все ок, 1 невалидная группа, 2 невалидные контакты
         self.client.force_authenticate(user=self.user, token=self.token)
@@ -99,21 +88,108 @@ class ImportRunTest(APITestCase):
         response = self.client.post(url, request_data)
         response_data = response.data
         self.assertEqual(200, response.status_code)
-
+        # общие параметры
         self.assertEqual(6, response_data["all_handled_lines"])
         self.assertEqual(2, response_data["success_create_update_count"])
         self.assertEqual(2, response_data["partial_success_create_update_count"])
         self.assertEqual(2, response_data["fail_count"])
-        contact_1_obj = RecipientContact.objects.get(id=1)
-        a = [self.first_user_group1, self.first_user_group2, self.first_user_group3]
-        print("OBJ!!!", contact_1_obj.phone)
-        print("GROUPS", contact_1_obj.contact_group)
-        for el in a:
-            self.assertEqual(True, el in contact_1_obj.contact_group)
-        contact_2_obj = RecipientContact.objects.get(id=2)
-        self.assertEqual({self.first_user_group1, self.first_user_group2}, set(contact_2_obj.contact_group))
-        contact_3_obj = RecipientContact.objects.get(id=5)
-        self.assertEqual("79853411006", contact_3_obj.phone)
+
+        # 1 строка - добавление группы контакту с id = 1, который принадлежит 1 юзеру Всё должно быть ОК
+        contact_1_obj = RecipientContact.objects.get(id=1)  # целевой юзер
+        right_user_group = [self.first_user_group1, self.first_user_group2, self.first_user_group3]  # Целевые группы
+        cure_user_groups = contact_1_obj.contact_group.all()  # фактические группы юзера
+        for el in right_user_group:
+            self.assertEqual(True, el in cure_user_groups)
+        self.assertEqual(len(right_user_group), len(cure_user_groups))
+
+        # 2 строка - Добавление контакту с id = 2, который принадлежит 1 юзеру. Группы, которой не существует. Статус PF
+        contact_2_obj = RecipientContact.objects.get(id=2)  # целевой юзер
+        right_user_group = [self.first_user_group1, self.first_user_group2, self.first_user_group3]  # Целевые группы
+        cure_user_groups = contact_2_obj.contact_group.all()  # фактические группы юзера
+        for el in right_user_group:
+            self.assertEqual(True, el in cure_user_groups)
+        self.assertEqual(len(right_user_group), len(cure_user_groups))
+
+        # 3 строка - Создание юзера - Всё ок
+        contact_4_obj = RecipientContact.objects.get(id=5)  # юзер
+        right_user_group = [self.first_user_group1, self.first_user_group2]  # Целевые группы
+        right_phone = "79853411006"
+        right_email = "validmail@yandex.ru"
+        cure_user_groups = contact_4_obj.contact_group.all()  # фактические группы юзера
+        for el in right_user_group:
+            self.assertEqual(True, el in cure_user_groups)
+        self.assertEqual(len(right_user_group), len(cure_user_groups))
+        self.assertEqual(right_phone, contact_4_obj.phone)
+        self.assertEqual(right_email, contact_4_obj.email)
+
+        # 4 строка - Создание юзера - Всё ок
+        contact_4_obj = RecipientContact.objects.get(id=6)  # юзер
+        right_user_group = [self.first_user_group1, self.first_user_group2]  # Целевые группы
+        right_phone = "79853411007"
+        right_email = None
+        cure_user_groups = contact_4_obj.contact_group.all()  # фактические группы юзера
+        for el in right_user_group:
+            self.assertEqual(True, el in cure_user_groups)
+        self.assertEqual(len(right_user_group), len(cure_user_groups))
+        self.assertEqual(right_phone, contact_4_obj.phone)
+        self.assertEqual(right_email, contact_4_obj.email)
+
+        self.assertEqual(len(RecipientContact.objects.all()), 6)
+
+        # файл с ошибками
+
+
+class ImportRestTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser1', email='testuser@mail.com', password='password')
+        self.token = Token.objects.create(user=self.user)
+        self.token.save()
+        self.user2 = User.objects.create_user(
+            username='testuser2', email='testuser2@mail.com', password='password')
+        self.token = Token.objects.create(user=self.user2)
+        self.token.save()
+        self.user_1_file1 = ContactImportFiles.objects.create(owner=self.user, filename="1.xlsx", row_len=5)
+        self.user_1_file2 = ContactImportFiles.objects.create(owner=self.user, filename="11.xlsx", row_len=12)
+        self.user_1_file3 = ContactImportFiles.objects.create(owner=self.user2, filename="12.xlsx", row_len=12)
+
+    def test_get_1(self):
+        url = reverse('import_get', kwargs={'pk': 1})
+        # не хватает контактов
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        resp_data = response.data
+        self.assertEqual(resp_data["filename"], "1.xlsx")
+
+    def test_get_2(self):
+        url = reverse('import_get', kwargs={'pk': 1})
+        # не хватает контактов
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401)
+
+    def test_get_3(self):
+        url = reverse('import_get', kwargs={'pk': 15})
+        # не хватает контактов
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_4(self):
+        url = reverse('import_get', kwargs={'pk': 3})
+        # не хватает контактов
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_list_1(self):
+        url = reverse('import_list')
+        # не хватает контактов
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        resp_data = response.data
+        self.assertEqual(resp_data["results"][0]["filename"], "1.xlsx")
 
 
 class ImportRunRequestDataValidateTest(APITestCase):

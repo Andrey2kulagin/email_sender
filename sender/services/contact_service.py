@@ -124,6 +124,7 @@ def phone_validate(data, phone_valid_error, user):
                     f"Уже есть контакт(ы) с таким телефоном id:{[i.id for i in contacts_with_this_number]}")
 
 
+
 def email_validate(data, email_valid_error, user):
     if data.get("email"):
         try:

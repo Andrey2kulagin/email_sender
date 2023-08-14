@@ -216,7 +216,7 @@ class RecipientContactCreateTest(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(400, response.status_code)
 
-    def test_create_contact_5(self):
+    def test_create_contact_13(self):
         url = reverse('contact_create')
         data = {
             'email': "eaqwwda@yandex.ru",

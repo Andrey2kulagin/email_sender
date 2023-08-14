@@ -3,11 +3,19 @@ from rest_framework.response import Response
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import os
 from ..models import User, RecipientContact, ContactGroup, ContactImportFiles
-from .all_service import check_or_create_folder
+from .all_service import check_or_create_folder, phone_normalize
 from rest_framework import serializers, exceptions
 from django.core.exceptions import ObjectDoesNotExist
 import copy
 from .contact_service import email_validate, phone_validate
+
+
+def gen_path_to_import_report(user, import_id):
+    try:
+        ContactImportFiles.objects.get(owner=user, id=import_id)
+        return f"sources/contact_bug_reports/{user.username}/errors_import{import_id}.xlsx"
+    except ObjectDoesNotExist:
+        return 404
 
 
 def contact_import(validate_data: dict, user: User):
@@ -57,7 +65,7 @@ def write_array(filename, array):
 def write_errors(error_rows, user, import_id):
     dir_path = f"sources/contact_bug_reports/{user.username}/"
     check_or_create_folder(dir_path)
-    filename = f"{import_id}.xlsx"
+    filename = f"errors_import{import_id}.xlsx"
     write_array(dir_path + filename, error_rows)
 
 
@@ -77,11 +85,7 @@ def get_errors_headers(mask):
 def import_contact_row_handler(row: list[str], mask: dict[str: int], user: User, error_rows: list[list[str]]):
     cure_values = get_cure_value(row, mask)
     contact_id = cure_values.get("id")
-    if contact_id:
-        # обрабатываем update
-        validate_result = import_contact_update_validate(cure_values, contact_id, user)
-    else:
-        validate_result = import_contact_create_validate(cure_values, user)
+    validate_result = errors_check(contact_id, cure_values, user)
     status = validate_result.get("status", "")
     errors = validate_result.get("errors")
     comment = validate_result.get("comment")
@@ -94,10 +98,28 @@ def import_contact_row_handler(row: list[str], mask: dict[str: int], user: User,
     return status
 
 
+def errors_check(contact_id: str, cure_values: dict, user: User):
+    # если есть id, то обновляем, если нет, то создаём
+    if contact_id:
+        validate_result = import_contact_update_validate_errors_check(cure_values, contact_id, user)
+    else:
+        validate_result = import_contact_create_validate_error_check(cure_values, user)
+    return validate_result
+
+
 def get_error_row(errors: dict, row: list[str], comment: str, contact_id: (int, None), id_index: int, status) -> list[
     str]:
+    """
+    print("ERRORS", errors, "\n")
+    print("ROW", row, "\n")
+    print("COMMENT", comment, "\n")
+    print("CONTACT_ID", contact_id, "\n")
+    print("ID_INDEX", id_index, "\n")
+    print("STATUS", status, "\n\n\n\n\n\n\n")"""
+
     error_row = []
     error_str = ""
+    row = list(row)
     # добавляем коммент
     if comment:
         error_str += comment
@@ -114,7 +136,7 @@ def get_error_row(errors: dict, row: list[str], comment: str, contact_id: (int, 
         error_row.append(error_str)
         error_row.append("")
     # добавляем id
-    if id_index:
+    if id_index is not None:
         if row[id_index] is None:
             if contact_id:
                 row[id_index] = str(contact_id)
@@ -131,6 +153,39 @@ def get_error_row(errors: dict, row: list[str], comment: str, contact_id: (int, 
 
 def save_contact(user: User, cure_values: dict, errors: dict):
     cure_contact_id = cure_values.get("id")
+    contact = get_cure_contact_obj_to_save(cure_contact_id, user)
+    if contact is None:
+        return
+    contact_save_group_handler(cure_values, user, contact)
+
+    contact_save_another_params_handler(cure_values, errors, contact)
+    contact.save()
+    return contact.id
+
+
+def contact_save_another_params_handler(cure_values: dict, errors, contact):
+    for key in cure_values:
+        value = cure_values.get(key)
+        if value and ((errors and key not in errors) or not errors):
+            setattr(contact, key, value)
+
+
+def contact_save_group_handler(cure_values: dict, user: User, contact: RecipientContact):
+    groups = cure_values.get("contact_group")
+
+    if groups:
+
+        groups = groups.split(";")
+        for group in groups:
+            try:
+                group = ContactGroup.objects.get(user=user, title=group.strip())
+                contact.contact_group.add(group)
+            except ObjectDoesNotExist:
+                continue
+    del cure_values["contact_group"]
+
+
+def get_cure_contact_obj_to_save(cure_contact_id, user):
     if cure_contact_id:
         try:
             contact = RecipientContact.objects.get(owner=user, id=cure_contact_id)
@@ -139,27 +194,11 @@ def save_contact(user: User, cure_values: dict, errors: dict):
     else:
         contact = RecipientContact()
         contact.owner = user
-    groups = cure_values.get("contact_group")
-    print("GROUPS", groups)
-    if groups:
-        groups = groups.split(";")
-        for group in groups:
-            try:
-                group = ContactGroup.objects.get(user=user, title=group.strip)
-                contact.contact_group.add(group)
-            except ObjectDoesNotExist:
-                continue
-    del cure_values["contact_group"]
-    for key in cure_values:
-        value = cure_values.get(key)
-        if value and ((errors and key not in errors) or not errors):
-            setattr(contact, key, value)
-
-    contact.save()
-    return contact.id
+        contact.save()
+    return contact
 
 
-def import_contact_update_validate(cure_values, contact_id, user):
+def import_contact_update_validate_errors_check(cure_values, contact_id, user):
     # здесь будем возвращать строку из 3 статусов - OK, FF(full fail), PF(partial fail)
     # если что-то хотя бы 1 параметр валиден, а остальные - нет, то возвращаем PF(обновляем только то, что валидно)
     errors = {}
@@ -176,6 +215,9 @@ def import_contact_update_validate(cure_values, contact_id, user):
 
 def add_email_phone_errors(cure_values, user, errors):
     try:
+        cure_phone = cure_values["phone"]
+        if cure_phone:
+            cure_values["phone"] = phone_normalize(cure_phone)
         phone_validate(cure_values, "Неправильный номер телефона. Должно быть 11 цифр и начинаться должен с 8 или +7",
                        user)
     except serializers.ValidationError as e:
@@ -186,7 +228,7 @@ def add_email_phone_errors(cure_values, user, errors):
         errors["email"] = e.__str__()
 
 
-def import_contact_create_validate(cure_values, user):
+def import_contact_create_validate_error_check(cure_values, user):
     # здесь будем возвращать строку из 3 статусов - OK, FF(full fail), PF(partial fail)
     # Классическая ситуация с валидацией. Должен быть хотя бы 1 рабочий контакт
     errors = {}
@@ -217,7 +259,7 @@ def add_groups_errors(cure_values, user, errors):
                 try:
                     ContactGroup.objects.get(user=user, title=group.strip())
                 except ObjectDoesNotExist:
-                    errors[f"group :{group}"] = f"У вас нет такой группы{group}"
+                    errors[f"group :{group}"] = f'У вас нет группы: "{group.strip()}"'
 
 
 def get_cure_value(row: list[str], mask: dict[str: int]):
@@ -266,9 +308,11 @@ def file_upload_handler(file: InMemoryUploadedFile, user: User, is_contains_head
     filename = get_cure_filename(file_dir, file.name)
     check_or_create_folder(file_dir)
     write_received_excel(file_dir, filename, file)
-    ContactImportFiles.objects.create(owner=user, filename=filename, row_len=start_data.get("count_elements_in_line"),
-                                      is_contains_headers=is_contains_headers)
+    contact_import_obj = ContactImportFiles.objects.create(owner=user, filename=filename,
+                                                           row_len=start_data.get("count_elements_in_line"),
+                                                           is_contains_headers=is_contains_headers)
     output_data = {
+        "import_id": contact_import_obj.id,
         "file_name_on_serv": filename,
         "count": start_data.get("count"),
         "count_elements_in_line": start_data.get("count_elements_in_line"),
