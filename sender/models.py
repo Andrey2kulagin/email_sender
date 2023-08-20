@@ -29,7 +29,7 @@ class ContactImportFiles(models.Model):
     fail_count = models.IntegerField(default=None, null=True)
 
     def __str__(self):
-        return self.id
+        return f"import{self.id}"
 
 
 class ContactGroup(models.Model):
