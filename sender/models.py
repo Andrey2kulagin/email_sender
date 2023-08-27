@@ -18,7 +18,7 @@ class User(AbstractUser):
 
 class ContactImportFiles(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True)
     filename = models.CharField(max_length=100)
     row_len = models.IntegerField()
     is_contains_headers = models.BooleanField(default=False, null=True)

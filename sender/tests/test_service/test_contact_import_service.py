@@ -9,7 +9,7 @@ from ...models import RecipientContact, User, ContactGroup
 
 current_path = os.path.abspath(__file__)
 
-"""
+
 class TestContactValidate(DjTestKeys):
     def setUp(self) -> None:
         # надо создать пользователя, несколько групп и контактов
@@ -228,7 +228,6 @@ class TestContactValidate(DjTestKeys):
         }
         res = import_contact_update_validate_errors_check(cure_values, '92', self.user)
         self.assertEqual(res["status"], "FF")
-"""
 
 
 class TestErrorsCase(TestCase):
@@ -307,7 +306,6 @@ class TestErrorsCase(TestCase):
         self.assertEqual(result[4], None)
         self.assertEqual(result[5], 'Группа1 1 юзера; Группа2 1 юзера;')
 
-    """
     class GetStartDataTestCase(TestCase):
         def test_get_start_data_from_imp_1(self):
             relative_path = os.path.join(os.path.dirname(current_path), 'contact_import_test_file/1.xlsx')
@@ -318,7 +316,7 @@ class TestErrorsCase(TestCase):
             # Вызов функции с фиктивным файлом
             result_func = get_start_data_from_imp(uploaded_file)
             result = result_func["results"]
-    
+
             # Проверка ожидаемого результата
             self.assertEqual(result_func["count_elements_in_line"], 20)
             self.assertEqual(result_func["count"], 2)
@@ -328,7 +326,7 @@ class TestErrorsCase(TestCase):
             self.assertEqual(len(result[1]), 20)
             self.assertEqual(result[1][1], "value 1")
             self.assertEqual(result[1][2], "Значение 2")
-    
+
         def test_get_start_data_from_imp_2(self):
             relative_path = os.path.join(os.path.dirname(current_path), 'contact_import_test_file/2.xlsx')
             # Создание фиктивного файла
@@ -347,16 +345,19 @@ class TestErrorsCase(TestCase):
             self.assertEqual(len(result[1]), 12)
             self.assertEqual(result[1][1], "value 1")
             self.assertEqual(result[1][3], "Значение 2")
-    
-    
-    class GetFilenameTestCase(TestCase):
-        def test_get_filename_1(self):
-            os.mkdir("test")
-            cure_filenames = ["test.xlsx", "test1.xlsx"]
-            for filename in cure_filenames:
-                f = open(f"test/{filename}", 'w')
-                f.close()
-            result = get_cure_filename("test", "test.xlsx")
-            shutil.rmtree("test")
-            self.assertEqual("test12.xlsx", result)
-    """
+
+
+class GetFilenameTestCase(TestCase):
+    def test_get_filename_1(self):
+        os.mkdir("test")
+        cure_filenames = ["test.xlsx", "test(1).xlsx", "test ( 1 ).xlsx", "test(23).xlsx"]
+        for filename in cure_filenames:
+            f = open(f"test/{filename}", 'w')
+            f.close()
+        result = get_cure_filename("test", "test.xlsx")
+        self.assertEqual("test(2).xlsx", result)
+        result = get_cure_filename("test", "test ( 1 ).xlsx")
+        self.assertEqual("test ( 1 )(1).xlsx", result)
+        result = get_cure_filename("test", "test(23).xlsx")
+        self.assertEqual("test(24).xlsx", result)
+        shutil.rmtree("test")

@@ -3,7 +3,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
-    GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView
+    GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
+    DeleteNotCompleteImport
 
 urlpatterns = [
     # авторизация черех JVT
@@ -67,5 +68,6 @@ urlpatterns = [
     path("import/file_upload", LoadContactImportFile.as_view(), name="import_file_upload"),
     path("import/run", ContactRunImport.as_view(), name="import_run"),
     path("import/errors_file/<int:import_id>", ImportBugsFileAPIView.as_view(), name="import_report"),
+    path("import/delete/<int:import_id>", DeleteNotCompleteImport.as_view(), name="import_delete"),
 
 ]

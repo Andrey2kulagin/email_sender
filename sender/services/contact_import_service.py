@@ -8,12 +8,50 @@ from rest_framework import serializers, exceptions
 from django.core.exceptions import ObjectDoesNotExist
 import copy
 from .contact_service import email_validate, phone_validate
+import re
+from django.http import HttpRequest
+
+
+def delete_not_complete_import(import_id: int, request: HttpRequest):
+    user = request.user
+    try:
+        cure_import = ContactImportFiles.objects.get(id=import_id, owner=user)
+        if not cure_import.is_imported:
+            cure_import_filepath = get_path_to_import_file(cure_import)
+            if os.path.exists(cure_import_filepath):
+                os.remove(cure_import_filepath)
+            cure_import.delete()
+            return Response(status=204)
+        return Response(status=400, data={"message": "Файл уже импортирован, удалить не получится"})
+    except ObjectDoesNotExist:
+        return Response(status=404)
+
+
+def get_path_to_import_file(import_obj: ContactImportFiles):
+    return f"sources/import_file/{import_obj.owner}/{import_obj.filename}"
+
+
+def create_new_xlsx_filename(filename_old):
+    match = re.search(r'\((\d+)\)', filename_old)
+    if match:
+        result_str = match.group()
+        result_number = int(match.group(1))
+        index = match.start()
+        if len(result_str) + index + 5 == len(filename_old):
+            return filename_old.replace(f"{result_str}.", f"({result_number + 1}).")
+    return filename_old.replace('.', "(1).")
+
+
+def get_cure_filename(filepath, init_filename):
+    while os.path.exists(f"{filepath}/{init_filename}"):
+        init_filename = create_new_xlsx_filename(init_filename)
+    return init_filename
 
 
 def gen_path_to_import_report(user, import_id):
     try:
         ContactImportFiles.objects.get(owner=user, id=import_id)
-        return f"sources/contact_bug_reports/{user.username}/errors_import{import_id}.xlsx"
+        return f"sources/contact_bug_reports/{user.username}/errors_import_{import_id}.xlsx"
     except ObjectDoesNotExist:
         return 404
 
@@ -30,9 +68,9 @@ def contact_import(validate_data: dict, user: User):
         mask = copy.deepcopy(validate_data)
         del mask["filename"]
         error_rows = [get_errors_headers(mask)]
-        workbook = openpyxl.load_workbook(f"sources/import_file/{user}/{filename}")
-        sheet = workbook.active
         import_obj = ContactImportFiles.objects.get(owner=user, filename=filename)
+        workbook = openpyxl.load_workbook(get_path_to_import_file(import_obj))
+        sheet = workbook.active
         is_contains_headers_flag = import_obj.is_contains_headers
         # обработка самого файла построчно
         for row in sheet.iter_rows(values_only=True):
@@ -63,10 +101,10 @@ def write_array(filename, array):
 
 
 def write_errors(error_rows, user, import_id):
-    dir_path = f"sources/contact_bug_reports/{user.username}/"
+    path_to_report = gen_path_to_import_report(user, import_id)
+    dir_path = path_to_report[:path_to_report.rfind("/")]
     check_or_create_folder(dir_path)
-    filename = f"errors_import{import_id}.xlsx"
-    write_array(dir_path + filename, error_rows)
+    write_array(path_to_report, error_rows)
 
 
 def get_errors_headers(mask):
@@ -191,6 +229,8 @@ def get_cure_contact_obj_to_save(cure_contact_id, user):
             contact = RecipientContact.objects.get(owner=user, id=cure_contact_id)
         except ObjectDoesNotExist:
             return
+        except:
+            return
     else:
         contact = RecipientContact()
         contact.owner = user
@@ -202,10 +242,13 @@ def import_contact_update_validate_errors_check(cure_values, contact_id, user):
     # здесь будем возвращать строку из 3 статусов - OK, FF(full fail), PF(partial fail)
     # если что-то хотя бы 1 параметр валиден, а остальные - нет, то возвращаем PF(обновляем только то, что валидно)
     errors = {}
-    contact_objs = RecipientContact.objects.filter(owner=user, id=contact_id)
-    if len(contact_objs) == 0:
+    try:
+        contact_objs = RecipientContact.objects.get(owner=user, id=contact_id)
+    except ObjectDoesNotExist:
         errors["id"] = "У вас нет контакта с таким id"
         return {"status": "FF", "errors": errors, "comment": None}
+    except:
+        errors["error"] = "Фатальная ошибка в данных"
     add_email_phone_errors(cure_values, user, errors)
     add_groups_errors(cure_values, user, errors)
     if len(errors) == 0:
@@ -325,14 +368,6 @@ def write_received_excel(file_dir, filename, file):
     with open(f"{file_dir}/{filename}", 'wb+') as destination:
         for chunk in file.chunks():
             destination.write(chunk)
-
-
-def get_cure_filename(filepath, init_filename):
-    count = 1
-    while os.path.exists(f"{filepath}/{init_filename}"):
-        init_filename = init_filename.replace(".", f"{count}.")
-        count += 1
-    return init_filename
 
 
 def is_file_in_dir(filepath):

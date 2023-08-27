@@ -16,9 +16,15 @@ from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
 from .paginations import DefaultPagination
-from .services.contact_import_service import file_upload_handler, contact_import, gen_path_to_import_report
+from .services.contact_import_service import file_upload_handler, contact_import, gen_path_to_import_report, \
+    delete_not_complete_import
 from rest_framework import mixins
 from django.http import FileResponse
+
+
+class DeleteNotCompleteImport(APIView):
+    def delete(self, request, import_id):
+        return delete_not_complete_import(import_id, request)
 
 
 class ImportBugsFileAPIView(APIView):
@@ -43,7 +49,7 @@ class ImportViewSet(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericVie
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        qs = ContactImportFiles.objects.filter(owner=self.request.user)
+        qs = ContactImportFiles.objects.filter(owner=self.request.user, is_imported=True).order_by('-date')
         return qs
 
 

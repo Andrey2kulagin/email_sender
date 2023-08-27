@@ -21,6 +21,8 @@ def phone_normalize(number: str) -> str:
             is_firs_symb = False
         if symb in digits:
             out_str += symb
+    if type(out_str) != str or len(out_str) < 5:
+        return ""
     if out_str[0] == '+' and out_str[1] == '7':
         out_str = '7' + out_str[2::]
     elif out_str[0] == '8':

@@ -5,3 +5,4 @@
 to_emails.txt
 .coverage
 *.sqlite3
+*.xlsx

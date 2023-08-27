@@ -147,11 +147,14 @@ class ImportRestTest(APITestCase):
         self.token.save()
         self.user2 = User.objects.create_user(
             username='testuser2', email='testuser2@mail.com', password='password')
-        self.token = Token.objects.create(user=self.user2)
-        self.token.save()
-        self.user_1_file1 = ContactImportFiles.objects.create(owner=self.user, filename="1.xlsx", row_len=5)
-        self.user_1_file2 = ContactImportFiles.objects.create(owner=self.user, filename="11.xlsx", row_len=12)
-        self.user_1_file3 = ContactImportFiles.objects.create(owner=self.user2, filename="12.xlsx", row_len=12)
+        self.token_1 = Token.objects.create(user=self.user2)
+        self.token_1.save()
+        self.user_1_file1 = ContactImportFiles.objects.create(owner=self.user, filename="1.xlsx", row_len=5,
+                                                              is_imported=True)
+        self.user_1_file2 = ContactImportFiles.objects.create(owner=self.user, filename="11.xlsx", row_len=12,
+                                                              is_imported=True)
+        self.user_1_file3 = ContactImportFiles.objects.create(owner=self.user2, filename="12.xlsx", row_len=12,
+                                                              is_imported=False)
 
     def test_get_1(self):
         url = reverse('import_get', kwargs={'pk': 1})
@@ -189,7 +192,27 @@ class ImportRestTest(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         resp_data = response.data
-        self.assertEqual(resp_data["results"][0]["filename"], "1.xlsx")
+        self.assertEqual(resp_data["results"][0]["filename"], "11.xlsx")
+        self.assertEqual(len(resp_data["results"]), 2)
+
+    def test_delete_1(self):
+        os.mkdir("sources/import_file/testuser2/")
+        file = open("sources/import_file/testuser2/12.xlsx", 'w')
+        url = reverse('import_delete', kwargs={"import_id": 3})
+        self.client.force_authenticate(user=self.user2, token=self.token_1)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(os.path.exists("sources/import_file/testuser2/12.xlsx"), False)
+        shutil.rmtree("sources/import_file/testuser2/")
+
+    def test_delete_2(self):
+        os.mkdir("sources/import_file/testuser1/")
+        file = open("sources/import_file/testuser1/11.xlsx", 'w')
+        url = reverse('import_delete', kwargs={"import_id": 2})
+        self.client.force_authenticate(user=self.user, token=self.token_1)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 400)
+        shutil.rmtree("sources/import_file/testuser1/")
 
 
 class ImportRunRequestDataValidateTest(APITestCase):
@@ -285,10 +308,10 @@ class ImportFileUploadTest(APITestCase):
         data = response.data
         self.assertEqual(200, response.status_code)
         self.assertEqual(True, os.path.exists(f"sources/import_file/{self.user.username}"))
-        self.assertEqual(True, os.path.exists(f"sources/import_file/{self.user.username}/11.xlsx"))
-        self.assertEqual("11.xlsx", data.get("file_name_on_serv"))
+        self.assertEqual(True, os.path.exists(f"sources/import_file/{self.user.username}/1(1).xlsx"))
+        self.assertEqual("1(1).xlsx", data.get("file_name_on_serv"))
         shutil.rmtree(f"sources/import_file/{self.user.username}")
-        self.assertEqual(1, len(ContactImportFiles.objects.filter(owner=self.user, filename="11.xlsx")))
+        self.assertEqual(1, len(ContactImportFiles.objects.filter(owner=self.user, filename="1(1).xlsx")))
 
     def test_3(self):
         url = reverse('import_file_upload')
