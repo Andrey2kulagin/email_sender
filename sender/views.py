@@ -20,6 +20,15 @@ from .services.contact_import_service import file_upload_handler, contact_import
     delete_not_complete_import
 from rest_framework import mixins
 from django.http import FileResponse
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        token = response.data.get("refresh")
+        if token:
+            response.set_cookie("refresh", token, httponly=True)
 
 
 class DeleteNotCompleteImport(APIView):

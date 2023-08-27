@@ -85,11 +85,11 @@ def recipient_contact_patch_validate(instance, data, error_missing_contacts, ema
                 raise serializers.ValidationError(error_missing_contacts)
 
 
-def recipient_contact_all_fields_valid(data, phone_valid_error, request,
+def recipient_contact_all_fields_valid(contact_id, data, phone_valid_error, request,
                                        email_valid_error):
     user = request.user
-    phone_validate(data, phone_valid_error, user)
-    email_validate(data, email_valid_error, user)
+    phone_validate(data, phone_valid_error, user, contact_id)
+    email_validate(data, email_valid_error, user, contact_id)
     contact_group_validate(data, user)
     senders_validate(data, user)
 
@@ -112,27 +112,28 @@ def contact_group_validate(data, user):
                     f'Группа "{group}" id:{group.id} не пренадлежит пользователю, который ее использует')
 
 
-def phone_validate(data, phone_valid_error, user):
+def phone_validate(data, phone_valid_error, user, contact_id):
     if data.get("phone"):
         if not is_valid_phone_number(data["phone"]):
             raise serializers.ValidationError(phone_valid_error)
         else:
             # проверяем, есть ли у пользователя контакт с таким номером, чтобы не было дубликатов
-            contacts_with_this_number = RecipientContact.objects.filter(owner=user, phone=data["phone"])
+            contacts_with_this_number = RecipientContact.objects.filter(owner=user, phone=data["phone"]).exclude(
+                id=contact_id)
             if len(contacts_with_this_number) != 0:
                 raise serializers.ValidationError(
                     f"Уже есть контакт(ы) с таким телефоном id:{[i.id for i in contacts_with_this_number]}")
 
 
-
-def email_validate(data, email_valid_error, user):
+def email_validate(data, email_valid_error, user, contact_id):
     if data.get("email"):
         try:
             validate_email(data["email"])
         except:
             raise serializers.ValidationError(email_valid_error)
         # проверяем, есть ли у пользователя контакт с таким email, чтобы не было дубликатов
-        contacts_with_this_email = RecipientContact.objects.filter(owner=user, email=data["email"])
+        contacts_with_this_email = RecipientContact.objects.filter(owner=user, email=data["email"]).exclude(
+            id=contact_id)
         if len(contacts_with_this_email) != 0:
             raise serializers.ValidationError(
                 f"Уже есть контакт(ы) с таким email id:{[i.id for i in contacts_with_this_email]}")

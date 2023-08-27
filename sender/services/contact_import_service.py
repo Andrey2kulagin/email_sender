@@ -262,11 +262,11 @@ def add_email_phone_errors(cure_values, user, errors):
         if cure_phone:
             cure_values["phone"] = phone_normalize(cure_phone)
         phone_validate(cure_values, "Неправильный номер телефона. Должно быть 11 цифр и начинаться должен с 8 или +7",
-                       user)
+                       user, cure_values.get("id"))
     except serializers.ValidationError as e:
         errors["phone"] = e.__str__()
     try:
-        email_validate(cure_values, "Введите правильный email", user)
+        email_validate(cure_values, "Введите правильный email", user, cure_values.get("id"))
     except serializers.ValidationError as e:
         errors["email"] = e.__str__()
 

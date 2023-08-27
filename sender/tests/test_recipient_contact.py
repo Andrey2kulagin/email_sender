@@ -233,7 +233,6 @@ class RecipientContactCreateTest(APITestCase):
         self.assertEqual(400, response.status_code)
 
 
-
 class RecipientContactUpdateTest(APITestCase):
 
     def setUp(self):
@@ -278,36 +277,39 @@ class RecipientContactUpdateTest(APITestCase):
         # создание контактов
         self.first_user_contact_1 = RecipientContact.objects.create(owner=self.user, name="user1_name",
                                                                     surname="user1_surname", phone="89753412148",
-                                                                    email="user1@mail.com", comment="comment")
+                                                                    email="user1_contat_1@mail.com", comment="comment")
         self.first_user_contact_1.contact_group.add(*groups_first_user)
         self.first_user_contact_1.senders.add(*senders_first_user)
         self.first_user_contact_2 = RecipientContact.objects.create(owner=self.user, name="user1_name",
-                                                                    surname="user1_surname", phone="89753412148",
-                                                                    email="user1@mail.com", comment="comment")
+                                                                    surname="user1_surname", phone="89753412147",
+                                                                    email="user1_contact_2@mail.com", comment="comment")
         self.first_user_contact_2.contact_group.add(*groups_first_user)
         self.first_user_contact_2.senders.add(*senders_first_user)
 
         self.first_user_contact_3 = RecipientContact.objects.create(owner=self.user, name="user1_name",
-                                                                    surname="user1_surname", phone="89753412148",
-                                                                    email="user1@mail.com", comment="comment")
+                                                                    surname="user1_surname", phone="89753412146",
+                                                                    email="user1_contact_3@mail.com", comment="comment")
         self.first_user_contact_3.contact_group.add(*groups_first_user)
         self.first_user_contact_3.senders.add(*senders_first_user)
 
         self.second_user_contact_1 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
-                                                                     surname="user1_surname", phone="89753412148",
-                                                                     email="user1@mail.com", comment="comment")
+                                                                     surname="user1_surname", phone="89753412145",
+                                                                     email="user2_contact_1@mail.com",
+                                                                     comment="comment")
         self.second_user_contact_1.contact_group.add(*groups_second_user)
         self.second_user_contact_1.senders.add(*senders_second_user)
 
         self.second_user_contact_2 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
-                                                                     surname="user1_surname", phone="89653412148",
-                                                                     email="user1@mail.com", comment="comment")
+                                                                     surname="user1_surname", phone="89653412144",
+                                                                     email="user2_contact_2@mail.com",
+                                                                     comment="comment")
         self.second_user_contact_2.contact_group.add(*groups_second_user)
         self.second_user_contact_2.senders.add(*senders_second_user)
 
         self.second_user_contact_3 = RecipientContact.objects.create(owner=self.second_user, name="user1_name",
                                                                      surname="user1_surname", phone="89753412148",
-                                                                     email="user1@mail.com", comment="comment")
+                                                                     email="user2_contact_3@mail.com",
+                                                                     comment="comment")
         self.second_user_contact_3.contact_group.add(*groups_second_user)
         self.second_user_contact_3.senders.add(*senders_second_user)
 
@@ -365,6 +367,15 @@ class RecipientContactUpdateTest(APITestCase):
         url = reverse('contact_update', kwargs={'pk': 1})
         data = {
             'phone': "89753412148"
+        }
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(200, response.status_code)
+
+    def test_update_contact_5_1(self):
+        url = reverse('contact_update', kwargs={'pk': 1})
+        data = {
+            'phone': "89753412147"
         }
         self.client.force_authenticate(user=self.user, token=self.token)
         response = self.client.patch(url, data, format='json')
@@ -466,6 +477,18 @@ class RecipientContactUpdateTest(APITestCase):
         }
         response = self.client.patch(url, data, format='json')
         self.assertEqual(401, response.status_code)
+
+    def test_update_contact_13(self):
+        url = reverse('contact_update', kwargs={'pk': 2})
+        data = {
+            'email': 'user1@mail.com',
+        }
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.patch(url, data, format='json')
+        response = self.client.patch(url, data, format='json')
+        data = response.data
+        print(data)
+        self.assertEqual(200, response.status_code)
 
 
 class RecipientContactListDetailDeleteTest(APITestCase):

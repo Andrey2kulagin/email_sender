@@ -59,6 +59,7 @@ class ContactGroupSerializer(serializers.ModelSerializer):
 
 class WhatsAppAccountSerializer(serializers.ModelSerializer):
     is_login = serializers.BooleanField(read_only=True)
+    checked_date = serializers.DateField(read_only=True)
     id = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -67,6 +68,7 @@ class WhatsAppAccountSerializer(serializers.ModelSerializer):
                   'contact',
                   'title',
                   'is_login',
+                  'checked_date'
                   )
 
     def validate(self, data):
@@ -152,18 +154,22 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         error_missing_contacts = "Заполните хотя бы один контакт"
         email_valid_error = "Введите правильный email"
         phone_valid_error = "Неправильный номер телефона. Должно быть 11 цифр и начинаться должен с 8 или +7"
+        cure_id = request
         # проверяем все поля на валидность
-        recipient_contact_all_fields_valid(data, phone_valid_error, request,
+        if request.method == "PATCH":
+            view = self.context['view']
+            contact_id = view.kwargs['pk']
+        else:
+            contact_id = None
+        recipient_contact_all_fields_valid(contact_id, data, phone_valid_error, request,
                                            email_valid_error)
         if request.method == "POST":
             if not ("phone" in data or "email" in data):
                 raise serializers.ValidationError(error_missing_contacts)
         elif request.method == "PATCH":
             instance = self.instance
-
             recipient_contact_patch_validate(instance, data, error_missing_contacts, email_valid_error,
                                              phone_valid_error)
-
         return data
 
 
