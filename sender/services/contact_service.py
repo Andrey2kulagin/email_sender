@@ -118,7 +118,8 @@ def phone_validate(data, phone_valid_error, user, contact_id):
             raise serializers.ValidationError(phone_valid_error)
         else:
             # проверяем, есть ли у пользователя контакт с таким номером, чтобы не было дубликатов
-            contacts_with_this_number = RecipientContact.objects.filter(owner=user, phone=data["phone"]).exclude(
+            contacts_with_this_number = RecipientContact.objects.filter(owner=user,
+                                                                        phone=phone_normalize(data["phone"])).exclude(
                 id=contact_id)
             if len(contacts_with_this_number) != 0:
                 raise serializers.ValidationError(
