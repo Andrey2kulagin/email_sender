@@ -70,4 +70,7 @@ urlpatterns = [
     path("import/errors_file/<int:import_id>", ImportBugsFileAPIView.as_view(), name="import_report"),
     path("import/delete/<int:import_id>", DeleteNotCompleteImport.as_view(), name="import_delete"),
 
+
+    # Рассылки
+
 ]

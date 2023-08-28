@@ -13,6 +13,8 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 from django.core.exceptions import ObjectDoesNotExist
 import os
 from selenium.webdriver import ChromeOptions
+from django.conf import settings
+import shutil
 
 
 def get_user_queryset(groups: list[int], contacts: list[int], user: User):
@@ -60,8 +62,9 @@ def gen_qr_code(driver):
 
 def login_to_wa_account(driver=None, session_number=None):
     try:
-        os.rmdir(f"whats_app_session/{session_number}")
+        shutil.rmtree(get_cookie_dir(session_number))
     except:
+        print("CANT DELETE")
         pass
     account = SenderPhoneNumber.objects.get(id=session_number)
     account.login_date = None
@@ -74,6 +77,11 @@ def login_to_wa_account(driver=None, session_number=None):
     driver.quit()
     os.remove("qr_code.png")
     return result
+
+
+def get_cookie_dir(session_id):
+    base_dir = settings.BASE_DIR
+    return f"{base_dir}/sources/whats_app_sessions/{session_id}"
 
 
 def create_wa_driver(session_id=None):
@@ -89,10 +97,8 @@ def create_wa_driver(session_id=None):
     if session_id:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         # Создаем путь к папке для сохранения профиля
-        profile_dir = os.path.join(current_dir, f"whats_app_sessions/{session_id}")
-        print("Profile_DIR", profile_dir)
-        # Задаем путь к папке для сохранения профиля
-        chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+        chrome_options.add_argument(f"--user-data-dir={get_cookie_dir(session_id)}")
+
     driver = webdriver.Chrome(options=chrome_options)
     driver.get("https://web.whatsapp.com/")
     print(session_id)
