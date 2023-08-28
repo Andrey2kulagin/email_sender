@@ -59,7 +59,7 @@ class ContactGroupSerializer(serializers.ModelSerializer):
 
 class WhatsAppAccountSerializer(serializers.ModelSerializer):
     is_login = serializers.BooleanField(read_only=True)
-    checked_date = serializers.DateField(read_only=True)
+    login_date = serializers.DateField(read_only=True)
     id = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -68,7 +68,7 @@ class WhatsAppAccountSerializer(serializers.ModelSerializer):
                   'contact',
                   'title',
                   'is_login',
-                  'checked_date'
+                  'login_date'
                   )
 
     def validate(self, data):
