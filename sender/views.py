@@ -28,9 +28,12 @@ class WhatsAppSenderRun(APIView):
     serializer_class = WASenderSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = ContactRunImportSerializer(data=request.data, context={'request': request})
+        serializer = WASenderSerializer(data=request.data, context={'request': request})
         if serializer.is_valid(raise_exception=True):
+            validated_data = serializer.validated_data
             return Response(status=200)
+        else:
+            return Response(status=400)
 
 
 class MyTokenObtainPairView(TokenObtainPairView):

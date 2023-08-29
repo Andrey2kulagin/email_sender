@@ -114,7 +114,7 @@ def check_login_view(session_id):
 
 def check_login(driver):
     count_attempt = 0
-    max_attempt = 15
+    max_attempt = 8
     sleep_time = 10
     is_log = is_login(driver=driver)
     while not is_log and count_attempt < max_attempt:

@@ -1,6 +1,14 @@
-2023/08/29-11:38:26.926 25e0 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2023/08/29-11:38:26.926 25e0 Recovering log #17
-2023/08/29-11:38:26.959 25e0 Reusing old log C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000017.log 
-2023/08/29-11:38:51.951 19d0 Level-0 table #23: started
-2023/08/29-11:38:51.979 19d0 Level-0 table #23: 1078979 bytes OK
-2023/08/29-11:38:51.980 19d0 Delete type=0 #17
+2023/08/29-19:24:38.254 3f64 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2023/08/29-19:24:38.254 3f64 Recovering log #22
+2023/08/29-19:24:38.320 3f64 Reusing old log C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000022.log 
+2023/08/29-19:24:53.609 3f64 Level-0 table #29: started
+2023/08/29-19:24:53.635 3f64 Level-0 table #29: 1052783 bytes OK
+2023/08/29-19:24:53.637 3f64 Delete type=0 #22
+2023/08/29-19:24:54.650 3890 Compacting 1@1 + 2@2 files
+2023/08/29-19:24:54.703 3890 Generated table #30@1: 28250 keys, 2180477 bytes
+2023/08/29-19:24:54.747 3890 Generated table #31@1: 59194 keys, 1226371 bytes
+2023/08/29-19:24:54.747 3890 Compacted 1@1 + 2@2 files => 3406848 bytes
+2023/08/29-19:24:54.748 3890 compacted to: files[ 0 0 2 0 0 0 0 ]
+2023/08/29-19:24:54.749 3890 Delete type=2 #25
+2023/08/29-19:24:54.749 3890 Delete type=2 #26
+2023/08/29-19:24:54.749 3890 Delete type=2 #29

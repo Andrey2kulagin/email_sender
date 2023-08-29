@@ -1,6 +1,6 @@
 from django.test import TestCase as DjTestKeys
 from ...models import User, ContactGroup, RecipientContact, UserLetterText, SenderPhoneNumber
-from ...services.WA_sender_service import wa_sender_run_validate
+from ...services.WA_sender_service import wa_sender_run_data_validate
 from rest_framework import serializers
 
 
@@ -64,11 +64,10 @@ class TestContactValidate(DjTestKeys):
             "text": "text_from_letter",
             "title": "title",
             "send_accounts": ["1-12", "2-17"],
-            "contacts_group": [1, 2],
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 1)
         except serializers.ValidationError:
             self.assertEqual(1, 2)
@@ -83,7 +82,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -101,7 +100,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             # self.assertEqual(1, 2)
             self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -119,7 +118,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -137,7 +136,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -155,7 +154,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -173,7 +172,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -191,7 +190,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -209,7 +208,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -227,7 +226,7 @@ class TestContactValidate(DjTestKeys):
             "contacts": [2, 3, 98]
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:
@@ -243,7 +242,7 @@ class TestContactValidate(DjTestKeys):
             "send_accounts": ["1-12", "3-17"],
         }
         try:
-            wa_sender_run_validate(data, user)
+            wa_sender_run_data_validate(data, user)
             self.assertEqual(1, 2)
             # self.assertEqual(1, 1)
         except serializers.ValidationError:

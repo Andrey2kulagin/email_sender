@@ -1,0 +1,7 @@
+2023/08/29-19:08:54.773 3868 Creating DB C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/2\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2023/08/29-19:08:54.785 3868 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/2\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2023/08/29-19:08:54.874 20bc Manual compaction at level-0 from '\x00\x01\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x02\x00\x00\x00' @ 0 : 0; will stop at (end)
+2023/08/29-19:08:55.644 20bc Level-0 table #5: started
+2023/08/29-19:08:55.648 20bc Level-0 table #5: 21524 bytes OK
+2023/08/29-19:08:55.651 20bc Delete type=0 #3
+2023/08/29-19:08:55.658 1d28 Manual compaction at level-0 from '\x00\x06\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x07\x00\x00\x00' @ 0 : 0; will stop at (end)

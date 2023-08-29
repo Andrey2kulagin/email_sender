@@ -1,0 +1,6 @@
+[0829/191415.377:INFO:CONSOLE(1)] "undetected chromedriver 1337!", source:  (1)
+[0829/191415.717:INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'ambient-light-sensor'.", source:  (0)
+[0829/191415.722:INFO:CONSOLE(1)] "undetected chromedriver 1337!", source:  (1)
+[0829/191416.326:INFO:CONSOLE(21)] "Another connection wants to delete database 'wawc'. Closing db now to resume the delete request.", source: https://web.whatsapp.com/serviceworker.js (21)
+[0829/191416.326:INFO:CONSOLE(21)] "Another connection wants to delete database 'wawc'. Closing db now to resume the delete request.", source: https://web.whatsapp.com/serviceworker.js (21)
+[0829/191416.329:INFO:CONSOLE(7)] "Another connection wants to delete database 'wawc'. Closing db now to resume the delete request.", source: https://web.whatsapp.com/vendor1~app.7f14216f970118f62a35.js (7)

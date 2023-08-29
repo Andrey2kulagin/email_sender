@@ -1,3 +1,4 @@
+import datetime
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -9,6 +10,54 @@ from selenium.webdriver.support import expected_conditions as EC
 from ..models import UserLetterText, SenderPhoneNumber, ContactGroup, RecipientContact
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
+from ..services.whats_app_utils import check_login_view
+
+
+def get_text(validated_data, user):
+    text_id = validated_data.get("text_id")
+    if text_id is not None:
+        text_obj = UserLetterText.objects.get(id=text_id, user=user)
+        return text_obj.text
+    return validated_data.get("text")
+
+
+def send_accounts_parse(validated_data):
+    """
+    возвращает массив словарей {"account_id": кол-во сообщений}
+    """
+    send_accounts = validated_data.get("send_accounts")
+    result = []
+    for send_account in send_accounts:
+        account_id, sender_count = send_account.split("-")
+        result.append({account_id: int(sender_count)})
+    return result
+
+
+def get_all_contacts(validated_data, user):
+    groups = validated_data.get("contacts_group")
+    contacts = validated_data.get("contacts")
+    all_contacts = None
+    for group in groups:
+        cure_group_obj = ContactGroup.objects.get(id=group, user=user)
+        cure_contacts = RecipientContact.objects.filter(owner=user, contact_group=cure_group_obj)
+        if all_contacts is None:
+            all_contacts = cure_contacts
+        else:
+            all_contacts = all_contacts | cure_contacts
+    for contact_id in contacts:
+        cure_contact = RecipientContact.objects.filter(id=contact_id)
+        if all_contacts is None:
+            all_contacts = cure_contact
+        else:
+            all_contacts = all_contacts | cure_contact
+    return all_contacts.distinct()
+
+
+def sender_handler(validated_data, user):
+    text = get_text(validated_data, user)
+    send_accounts = send_accounts_parse(validated_data)
+    # Надо получить аккаунты, которые к использованию. А мб это проверять на этапе валидации?
+    all_contacts = get_all_contacts(validated_data, user)
 
 
 def wa_text_id_validate(text_id, user):
@@ -20,6 +69,8 @@ def wa_text_id_validate(text_id, user):
 
 def wa_send_account_validate(data, user):
     send_accounts = data.get("send_accounts")
+    if send_accounts is None:
+        return
     if len(send_accounts) == 0:
         raise serializers.ValidationError("Передайте хотя бы 1 аккаунт для рассылки")
     for i in send_accounts:
@@ -45,6 +96,8 @@ def wa_send_account_validate(data, user):
 
 
 def wa_contact_group_validate(contact_groups, user):
+    if contact_groups is None:
+        return
     for i in contact_groups:
         try:
             ContactGroup.objects.get(id=i, user=user)
@@ -60,7 +113,7 @@ def wa_contacts_validate(contacts, user):
             raise serializers.ValidationError(f"У вас нет контакта с id {contact}")
 
 
-def wa_sender_run_validate(data, user):
+def wa_sender_run_data_validate(data, user):
     text_id = data.get("text_id")
     if text_id is not None:
         wa_text_id_validate(text_id, user)
@@ -74,6 +127,29 @@ def wa_sender_run_validate(data, user):
     wa_contact_group_validate(contact_groups, user)
     wa_contacts_validate(contacts, user)
     return data
+
+
+def wa_sender_run_account_login_validate(data, user):
+    send_accounts_id = data.get("send_accounts")
+    send_accounts = None
+    for account_id in send_accounts_id:
+        cure_account = SenderPhoneNumber.objects.filter(id=account_id.split('-')[0], owner=user)
+        if send_accounts is None:
+            send_accounts = cure_account
+        else:
+            send_accounts = send_accounts | cure_account
+    send_accounts = send_accounts.distinct()
+    not_login_ids = []
+    for account in send_accounts:
+        if not check_login_view(account.session_number):
+            account.is_login = False
+            account.login_date = datetime.date.today()
+            account.save()
+            not_login_ids.append(account.id)
+    if len(not_login_ids) != 0:
+        raise serializers.ValidationError(
+            f"При проверке обнаружилось, что произведён выход из части аккаунтов. Войдите, пожалуйста в аккаунты со "
+            f"следующими id{not_login_ids}")
 
 
 def gen_qr_code(driver):
@@ -150,11 +226,6 @@ def login(driver):
         return True
     else:
         return False
-
-
-def get_text():
-    text = open("text.txt", encoding='utf-8').read().replace("\n", "%0A")
-    return text
 
 
 def get_numbers():
