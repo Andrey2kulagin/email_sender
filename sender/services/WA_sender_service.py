@@ -66,7 +66,7 @@ def wa_sender_run_validate(data, user):
         wa_text_id_validate(text_id, user)
     elif data.get("text") is None:
         raise serializers.ValidationError("Должен быть заполнен контент письма. Либо текст, либо text_id")
-    contact_groups = data.get("contact_groups")
+    contact_groups = data.get("contacts_group")
     contacts = data.get("contacts")
     if contact_groups is None and contacts is None:
         raise serializers.ValidationError("Передайте хотя бы одну группу или получателя")
