@@ -1,2 +1,3 @@
-2023/08/28-13:27:10.147 2b30 Creating DB C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\Session Storage since it was missing.
-2023/08/28-13:27:10.155 2b30 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\Session Storage/MANIFEST-000001
+2023/08/29-11:38:27.158 25e0 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\Session Storage/MANIFEST-000001
+2023/08/29-11:38:27.159 25e0 Recovering log #3
+2023/08/29-11:38:27.159 25e0 Reusing old log C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\Session Storage/000003.log 

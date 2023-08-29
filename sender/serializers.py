@@ -9,6 +9,21 @@ from .services.contact_service import recipient_contact_patch_validate, recipien
     set_m2m_fields_to_recipient_contact, recipient_contact_update
 from .services.senders_account_service import email_check_null, whatsapp_check_null
 from .services.contact_import_service import contact_import_run_request_data_validate
+from .services.WA_sender_service import wa_sender_run_validate
+
+
+class WASenderSerializer(serializers.Serializer):
+    text_id = serializers.IntegerField(min_value=0)
+    text = serializers.CharField()
+    title = serializers.CharField()
+    send_accounts = serializers.ListField(child=serializers.CharField(), required=True)
+    contacts_group = serializers.ListField(child=serializers.IntegerField(min_value=0))
+    contacts = serializers.ListField(child=serializers.IntegerField(min_value=0))
+
+    def validate(self, data):
+        request = self.context.get('request')
+        user = request.user
+        return wa_sender_run_validate(data, user)
 
 
 class ImportSerializer(serializers.ModelSerializer):
@@ -22,7 +37,6 @@ class ImportSerializer(serializers.ModelSerializer):
 
 class ContactRunImportSerializer(serializers.Serializer):
     filename = serializers.CharField(max_length=100, required=True)
-
     id = serializers.IntegerField(max_value=20, default=None, allow_null=True)
     name = serializers.IntegerField(max_value=20, default=None, allow_null=True)
     surname = serializers.IntegerField(max_value=20, default=None, allow_null=True)

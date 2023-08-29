@@ -44,7 +44,7 @@ class UserLetterText(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(verbose_name="Внутренние название письма", max_length=100)
     letter_subject = models.CharField(verbose_name="Тема письма для клиента", max_length=100)
-    text = models.TextField(verbose_name="Tекст письма")
+    text = models.TextField(verbose_name="Tекст письма", null=True)
 
 
 class UserSenders(models.Model):

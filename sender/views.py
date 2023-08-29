@@ -5,13 +5,13 @@ from rest_framework.viewsets import GenericViewSet
 
 from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
-    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer
+    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, WASenderSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account, \
-    get_user_queryset
+    get_user_queryset, check_login_view
 from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
@@ -21,6 +21,16 @@ from .services.contact_import_service import file_upload_handler, contact_import
 from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+
+class WhatsAppSenderRun(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = WASenderSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = ContactRunImportSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid(raise_exception=True):
+            return Response(status=200)
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -185,8 +195,8 @@ class CheckWhatsAppContactsGroups(APIView):
 
     def post(self, request):
         user = self.request.user
-        groups = request.data.get("groups")
-        users = request.data.get("users")
+        groups = request.data.get("groups_id")
+        users = request.data.get("contacts_id")
         auth_account = get_active_whatsapp_account(user=user)
         if auth_account:
             all_checking_obj = get_user_queryset(groups, users, self.request.user)
@@ -195,6 +205,25 @@ class CheckWhatsAppContactsGroups(APIView):
         else:
             "возвращаем ошибку в стиле авторизуйтесь в WhatsApp"
             return Response(status=400)
+
+
+class CheckWhatsAppAccountLogin(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, WA_id):
+        user = request.user
+        try:
+            check_phone_obj = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+
+            if check_login_view(check_phone_obj.session_number):
+                return Response(status=200, data={"is_login": True})
+            else:
+                check_phone_obj.is_login = False
+                check_phone_obj.login_date = None
+                check_phone_obj.save()
+                return Response(status=200, data={"is_login": False})
+        except ObjectDoesNotExist:
+            return Response(status=404, data={"Такого аккаунта для рассылки Whats App не добавлено"})
 
 
 class LoginWhatsAppAccount(APIView):

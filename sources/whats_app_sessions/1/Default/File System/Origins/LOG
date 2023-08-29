@@ -1,2 +1,3 @@
-2023/08/28-13:27:11.169 2b30 Creating DB C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\File System\Origins since it was missing.
-2023/08/28-13:27:11.181 2b30 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\File System\Origins/MANIFEST-000001
+2023/08/29-11:38:26.970 3c90 Reusing MANIFEST C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\File System\Origins/MANIFEST-000001
+2023/08/29-11:38:26.970 3c90 Recovering log #3
+2023/08/29-11:38:26.970 3c90 Reusing old log C:\Users\s121917\PycharmProjects\email_sender/sources/whats_app_sessions/1\Default\File System\Origins/000003.log 

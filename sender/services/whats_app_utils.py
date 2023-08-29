@@ -105,6 +105,13 @@ def create_wa_driver(session_id=None):
     return driver
 
 
+def check_login_view(session_id):
+    driver = create_wa_driver(session_id)
+    result = check_login(driver)
+    driver.quit()
+    return result
+
+
 def check_login(driver):
     count_attempt = 0
     max_attempt = 15
