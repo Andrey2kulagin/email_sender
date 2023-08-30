@@ -6,4 +6,4 @@ to_emails.txt
 .coverage
 *.sqlite3
 *.xlsx
-/sources/whats_app_sessions
+/sources/whats_app_sessions/
