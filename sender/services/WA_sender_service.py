@@ -7,10 +7,73 @@ from selenium.webdriver.common.by import By
 from io import BytesIO
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from ..models import UserLetterText, SenderPhoneNumber, ContactGroup, RecipientContact
+from ..models import UserLetterText, SenderPhoneNumber, ContactGroup, RecipientContact, UserSenders, \
+    UserSendersContactStatistic
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
-from ..services.whats_app_utils import check_login_view
+from ..services.whats_app_utils import check_login_view, create_wa_driver, is_this_number_reg
+from selenium.common.exceptions import TimeoutException, NoAlertPresentException, UnexpectedAlertPresentException
+
+
+def set_error_message_to_statistic(statistic, message):
+    statistic.is_send = False
+    statistic.comment = message
+    statistic.save()
+
+
+def sender_handler(validated_data, user):
+    text = get_text(validated_data, user)
+    send_accounts = send_accounts_parse(validated_data)
+    all_contacts = list(get_all_contacts(validated_data, user))
+    all_contacts_len = len(all_contacts)
+    send_account_objects = get_send_account(validated_data, user)
+    cure_contact_index = 0
+    cure_sender_obj = UserSenders.objects.create(user=user, text=text, comment=validated_data.get("comment"),
+                                                 title=validated_data.get("title"))
+    send_messages_count = 0
+    for send_account_id in send_accounts:
+        send_account_object = send_account_objects.get(id=send_account_id)
+        driver = create_wa_driver(send_account_object.session_number)
+        for i in range(send_accounts[send_account_id]):
+            if all_contacts_len - cure_contact_index <= 0:
+                driver.quit()
+                return
+            cure_contact = all_contacts[cure_contact_index]
+            cure_contact_index += 1
+            statistic = UserSendersContactStatistic.objects.create(user=user, sender=cure_sender_obj,
+                                                                   contact=cure_contact)
+            phone_number = cure_contact.phone
+            if phone_number is None:
+                message = "У этого контакта нет номера для рассылки по WhatsApp"
+                set_error_message_to_statistic(statistic, message)
+                continue
+            is_phone_whatsapp_reg = cure_contact.is_phone_whatsapp_reg
+            if is_phone_whatsapp_reg is None:
+                result_is_reg = is_this_number_reg(driver, phone_number)
+                cure_contact.is_phone_whatsapp_reg = result_is_reg
+                cure_contact.whats_reg_checked_data = datetime.date.today()
+                cure_contact.save()
+                if not result_is_reg:
+                    message = "Номер этого контакта не зарегистрирован в WhatsApp"
+                    set_error_message_to_statistic(statistic, message)
+                    continue
+            elif not is_phone_whatsapp_reg:
+                message = "Номер этого контакта не зарегистрирован в WhatsApp"
+                set_error_message_to_statistic(statistic, message)
+                continue
+            try:
+                send_msg(driver, phone_number, text)
+                send_messages_count += 1
+                statistic.is_send = True
+                statistic.comment = "Сообщение успешно отправлено"
+                statistic.save()
+            except Exception as e:
+                message = f"Сообщение не отправлено, попробуйте ещё раз. При повторении ошибки обратитесь к администратору\n Сообщение для администратора{e}"
+                set_error_message_to_statistic(statistic, message)
+                continue
+        driver.quit()
+    cure_sender_obj.count_letter = send_messages_count
+    cure_sender_obj.save()
 
 
 def get_text(validated_data, user):
@@ -23,13 +86,13 @@ def get_text(validated_data, user):
 
 def send_accounts_parse(validated_data):
     """
-    возвращает массив словарей {"account_id": кол-во сообщений}
+    возвращает словарm {"account_id": кол-во сообщений}
     """
     send_accounts = validated_data.get("send_accounts")
-    result = []
+    result = {}
     for send_account in send_accounts:
         account_id, sender_count = send_account.split("-")
-        result.append({account_id: int(sender_count)})
+        result[account_id] = int(sender_count)
     return result
 
 
@@ -37,27 +100,24 @@ def get_all_contacts(validated_data, user):
     groups = validated_data.get("contacts_group")
     contacts = validated_data.get("contacts")
     all_contacts = None
-    for group in groups:
-        cure_group_obj = ContactGroup.objects.get(id=group, user=user)
-        cure_contacts = RecipientContact.objects.filter(owner=user, contact_group=cure_group_obj)
-        if all_contacts is None:
-            all_contacts = cure_contacts
-        else:
-            all_contacts = all_contacts | cure_contacts
-    for contact_id in contacts:
-        cure_contact = RecipientContact.objects.filter(id=contact_id)
-        if all_contacts is None:
-            all_contacts = cure_contact
-        else:
-            all_contacts = all_contacts | cure_contact
-    return all_contacts.distinct()
-
-
-def sender_handler(validated_data, user):
-    text = get_text(validated_data, user)
-    send_accounts = send_accounts_parse(validated_data)
-    # Надо получить аккаунты, которые к использованию. А мб это проверять на этапе валидации?
-    all_contacts = get_all_contacts(validated_data, user)
+    if groups is not None:
+        for group in groups:
+            cure_group_obj = ContactGroup.objects.get(id=group, user=user)
+            cure_contacts = RecipientContact.objects.filter(owner=user, contact_group=cure_group_obj)
+            if all_contacts is None:
+                all_contacts = cure_contacts
+            else:
+                all_contacts = all_contacts | cure_contacts
+    if contacts is not None:
+        for contact_id in contacts:
+            cure_contact = RecipientContact.objects.filter(id=contact_id)
+            if all_contacts is None:
+                all_contacts = cure_contact
+            else:
+                all_contacts = all_contacts | cure_contact
+    if all_contacts is not None:
+        return all_contacts.distinct()
+    return None
 
 
 def wa_text_id_validate(text_id, user):
@@ -81,7 +141,7 @@ def wa_send_account_validate(data, user):
             except ValueError:
                 raise serializers.ValidationError(f"Ошибка в send_accounts в {i} id должно быть числом")
             try:
-                letter_count = int(letter_count_str)
+                int(letter_count_str)
             except ValueError:
                 raise serializers.ValidationError(f"Ошибка в send_accounts в {i} letter_count должно быть числом")
             try:
@@ -129,7 +189,7 @@ def wa_sender_run_data_validate(data, user):
     return data
 
 
-def wa_sender_run_account_login_validate(data, user):
+def get_send_account(data, user):
     send_accounts_id = data.get("send_accounts")
     send_accounts = None
     for account_id in send_accounts_id:
@@ -138,7 +198,11 @@ def wa_sender_run_account_login_validate(data, user):
             send_accounts = cure_account
         else:
             send_accounts = send_accounts | cure_account
-    send_accounts = send_accounts.distinct()
+    return send_accounts.distinct()
+
+
+def wa_sender_run_account_login_validate(data, user):
+    send_accounts = get_send_account(data, user)
     not_login_ids = []
     for account in send_accounts:
         if not check_login_view(account.session_number):
@@ -152,114 +216,27 @@ def wa_sender_run_account_login_validate(data, user):
             f"следующими id{not_login_ids}")
 
 
-def gen_qr_code(driver):
-    '''Получает QR-код'''
-    driver.get("https://web.whatsapp.com/")
-    # скриншот элемента страницы с QR-кодом
-    qr_element = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "canvas[aria-label='Scan me!']"))
-    )
-    location = qr_element.location
-    size = qr_element.size
-    png = driver.get_screenshot_as_png()
-    im = Image.open(BytesIO(png))  # создание PIL Image из байтов png-изображения
-    left = location['x'] - 20
-    top = location['y'] - 20
-    right = location['x'] + size['width'] + 20
-    bottom = location['y'] + size['height'] + 20
-    im = im.crop((left, top, right, bottom))  # обрезка изображения по размерам элемента
-
-    # сохранение изображения в файл
-    im.save('qr_code.png')
-
-
-def is_this_number_reg(driver) -> bool:
-    try:
-        wrong_phone_div = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, ".f8jlpxt4.iuhl9who"))
-        )
-        if wrong_phone_div.text == "Неверный номер телефона.":
-            return False
-        else:
-            raise
-    except:
+def send_msg(driver, phone_no, text):
+    message = text
+    print(f"https://web.whatsapp.com/send?phone={phone_no}&text={message}")
+    driver.get(f"https://web.whatsapp.com/send?phone={phone_no}&text={message}")
+    while True:
         try:
-            WebDriverWait(driver, 10).until(
+            send_button = WebDriverWait(driver, 1).until(
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR, ".tvf2evcx.oq44ahr5.lb5m6g5c.svlsagor.p2rjqpw5.epia9gcq"))
             )
-            return True
-        except:
-            return False
-
-
-def send_msg(driver, phone_no, text):
-    print(phone_no)
-    message = text
-    driver.get(f"https://web.whatsapp.com/send?phone={phone_no}&text={message}")
-    # time.sleep(500000000)
-    if is_this_number_reg(driver):
-        send_button = driver.find_element(By.CSS_SELECTOR, ".tvf2evcx.oq44ahr5.lb5m6g5c.svlsagor.p2rjqpw5.epia9gcq")
-        send_button.click()
-        print("сообщение успешно отправлено")
-    else:
-        print("Нет такого номера")
-
-
-def is_login(driver):
-    try:
-        driver.find_element(By.CSS_SELECTOR, "._64p9P")
-        return True
-    except:
-        return False
-
-
-def login(driver):
-    gen_qr_code(driver)
-    count_attempt = 0
-    max_attempt = 15
-    sleep_time = 5
-    while not is_login(driver) and count_attempt < max_attempt:
-        time.sleep(sleep_time)
-        count_attempt += 1
-    if count_attempt < max_attempt:
-        return True
-    else:
-        return False
-
-
-def get_numbers():
-    f = open("base_of_numbers.txt")
-    return set(f.readlines())
-
-
-def phone_normalize(number: str) -> str:
-    out_str = ""
-    is_firs_symb = True
-    for symb in number:
-        digits = "0123456789"
-        if is_firs_symb:
-            digits = '+' + digits
-            is_firs_symb = False
-        if symb in digits:
-            out_str += symb
-    if out_str[0] == '+' and out_str[1] == '7':
-        out_str = '7' + out_str[2::]
-    elif out_str[0] == '8':
-        out_str = '7' + out_str[1::]
-    return out_str
-
-
-def main():
-    options = Options()
-    driver = webdriver.Chrome(options=options)
-    if login(driver):
-        print("Вы успешно вошли")
-        text = get_text()
-        numbers = get_numbers()
-        for number in numbers:
-            number = phone_normalize(number)
-            send_msg(driver, number, text)
-
-    else:
-        print("Войти не удалось")
+            break
+        except (NoAlertPresentException, TimeoutException, UnexpectedAlertPresentException) as E:
+            pass
+    send_button.click()
+    time.sleep(3)
+    while True:
+        try:
+            WebDriverWait(driver, 1).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, ".svlsagor.qssinsw9.lniyxyh2.p357zi0d.ac2vgrno.gndfcl4n"))
+            )
+            break
+        except (NoAlertPresentException, TimeoutException, UnexpectedAlertPresentException) as E:
+            pass

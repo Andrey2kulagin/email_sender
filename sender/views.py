@@ -21,6 +21,7 @@ from .services.contact_import_service import file_upload_handler, contact_import
 from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
+from .services.WA_sender_service import sender_handler
 
 
 class WhatsAppSenderRun(APIView):
@@ -31,6 +32,8 @@ class WhatsAppSenderRun(APIView):
         serializer = WASenderSerializer(data=request.data, context={'request': request})
         if serializer.is_valid(raise_exception=True):
             validated_data = serializer.validated_data
+            user = request.user
+            sender_handler(validated_data, user)
             return Response(status=200)
         else:
             return Response(status=400)

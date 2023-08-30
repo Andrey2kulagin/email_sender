@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, RecipientContact, UserLetterText, UserSenders, ContactGroup, SenderPhoneNumber, SenderEmail, \
-    ContactImportFiles
+    ContactImportFiles, UserSendersContactStatistic
 
 
 class MyUserAdmin(UserAdmin):
@@ -42,3 +42,4 @@ admin.site.register(ContactGroup)
 admin.site.register(SenderPhoneNumber)
 admin.site.register(SenderEmail)
 admin.site.register(ContactImportFiles)
+admin.site.register(UserSendersContactStatistic)

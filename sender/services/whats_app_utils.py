@@ -157,7 +157,8 @@ def get_active_whatsapp_account(user: User, driver=None) -> SenderPhoneNumber:
             driver.quit()
 
 
-def is_this_number_reg(driver) -> bool:
+def is_this_number_reg(driver, phone_number) -> bool:
+    driver.get(f"https://web.whatsapp.com/send?phone={phone_number}&text=test")
     try:
         wrong_phone_div = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".f8jlpxt4.iuhl9who"))
@@ -184,9 +185,7 @@ def check_whatsapp_contacts(contacts_queryset: QuerySet[RecipientContact], auth_
     # если профиль для проверки авторизован, то проверяем, иначе авторизуемся
     driver = create_wa_driver(auth_account.session_number)
     for contact in contacts_queryset:
-        driver.get(f"https://web.whatsapp.com/send?phone={contact.phone}&text=test")
-        print(is_this_number_reg(driver))
-        contact.is_phone_whatsapp_reg = is_this_number_reg(driver)
+        contact.is_phone_whatsapp_reg = is_this_number_reg(driver, contact.phone)
         contact.whats_reg_checked_data = datetime.datetime.now()
         contact.save()
     driver.quit()

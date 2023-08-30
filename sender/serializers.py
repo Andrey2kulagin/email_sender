@@ -19,6 +19,7 @@ class WASenderSerializer(serializers.Serializer):
     send_accounts = serializers.ListField(child=serializers.CharField(), required=True)
     contacts_group = serializers.ListField(child=serializers.IntegerField(min_value=0), required=False)
     contacts = serializers.ListField(child=serializers.IntegerField(min_value=0), required=False)
+    comment = serializers.CharField(required=False)
 
     def validate(self, data):
         request = self.context.get('request')

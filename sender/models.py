@@ -49,10 +49,10 @@ class UserLetterText(models.Model):
 
 class UserSenders(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    text = models.ForeignKey(UserLetterText, on_delete=models.SET_NULL, null=True)
-    count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений")
+    text = models.TextField()
+    count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений", null=True)
     start_date = models.DateField(auto_now_add=True)
-    comment = models.TextField()
+    comment = models.TextField(null=True)
     title = models.CharField(max_length=100, null=True, blank=True, default="Без названия")
 
     def __str__(self):
@@ -64,7 +64,7 @@ class RecipientContact(models.Model):
     name = models.CharField(max_length=150, null=True, blank=True)
     surname = models.CharField(max_length=150, null=True, blank=True)
     phone = models.CharField(verbose_name="Телефон", max_length=100, null=True, blank=True)
-    is_phone_whatsapp_reg = models.BooleanField(verbose_name="Телефон проверен на наличие в WhatsApp", default=False,
+    is_phone_whatsapp_reg = models.BooleanField(verbose_name="Телефон проверен на наличие в WhatsApp", default=None,
                                                 null=True)
     whats_reg_checked_data = models.DateField(default=None, null=True, blank=True)
     email = models.EmailField(verbose_name="Email", null=True, blank=True)
@@ -80,6 +80,17 @@ class RecipientContact(models.Model):
         if self.email:
             return f"{self.owner.username} - {self.email}"
         return f"{self.owner.username}"
+
+
+class UserSendersContactStatistic(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    sender = models.ForeignKey(UserSenders, on_delete=models.CASCADE, verbose_name="Рассылка")
+    contact = models.ForeignKey(RecipientContact, on_delete=models.CASCADE, verbose_name="Контакт")
+    is_send = models.BooleanField(null=True)
+    comment = models.TextField(verbose_name="Комментарий", null=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.sender} - {self.contact.phone}  {self.contact.email}- {self.is_send},"
 
 
 class SenderEmail(models.Model):
