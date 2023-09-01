@@ -4,7 +4,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
     GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
-    DeleteNotCompleteImport, CheckWhatsAppAccountLogin, WhatsAppSenderRun
+    DeleteNotCompleteImport, CheckWhatsAppAccountLogin, WhatsAppSenderRun, GetQrCode
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     # авторизация черех JVT
@@ -50,6 +52,7 @@ urlpatterns = [
          name="WA_update"),
     path("send_account/whatsApp/del/<int:pk>", WhatsAppAccountViewSet.as_view({'delete': 'destroy'}), name="WA_dell"),
     path("send_account/whatsApp/login/<int:WA_id>", LoginWhatsAppAccount.as_view(), name="WA_login"),
+    path("send_account/whatsApp/login_get_qr/<int:WA_id>", GetQrCode.as_view(), name="WA_login_get_qr"),
     path("send_account/whatsApp/check_login/<int:WA_id>", CheckWhatsAppAccountLogin.as_view(), name="WA_check_login"),
 
     # Группы контактов
@@ -74,3 +77,5 @@ urlpatterns = [
     # Рассылки
     path("mailing/WhatsApp/create", WhatsAppSenderRun.as_view(), name="WA_sender_create"),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

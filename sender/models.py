@@ -1,6 +1,7 @@
 from django.db import models
 # Create your models here.
 from django.contrib.auth.models import AbstractUser
+from datetime import datetime
 
 
 class User(AbstractUser):
@@ -108,7 +109,30 @@ class SenderPhoneNumber(models.Model):
     contact = models.CharField(verbose_name="Контакт", max_length=50, null=True)
     login_date = models.DateField(null=True, default=None, blank=True)
     is_login = models.BooleanField(null=True, default=False)
+    last_login_request = models.TimeField(null=True)
 
     @property
     def session_number(self):
         return self.id
+
+    @property
+    def get_sec_time_from_login_req(self):
+        # Проверяем, есть ли значение last_login_request
+        if self.last_login_request:
+            # Получаем текущее время
+            now = datetime.now()
+            # Вычисляем разницу во времени
+            now = datetime.now().date()
+            # Создаем объект datetime, объединяя текущую дату и last_login_request
+            last_login_datetime = datetime.combine(now, self.last_login_request)
+            # Возвращаем разницу в секундах
+            return last_login_datetime
+        else:
+            # Если last_login_request равно None, возвращаем None
+            return None
+
+
+class AdminData(models.Model):
+    login_duration_sec = models.PositiveIntegerField(verbose_name="Длительность ожидания входа в WhatsApp", default=120)
+    sleep_time = models.PositiveIntegerField(verbose_name="Задержка между проверками сканирования qr", default=10)
+    timeout_before_mail_sec = models.PositiveIntegerField(verbose_name="Задержка между сообщениями", default=3)

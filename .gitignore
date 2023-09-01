@@ -7,3 +7,5 @@ to_emails.txt
 *.sqlite3
 *.xlsx
 /sources/whats_app_sessions/*
+/sources/wa_qw/*
+/sources/media/qr_codes/*

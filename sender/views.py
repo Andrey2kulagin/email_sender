@@ -10,8 +10,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, login_to_wa_account, \
-    get_user_queryset, check_login_view
+from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, get_user_queryset, \
+    check_login_view, is_there_active_log_session
 from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,6 +22,8 @@ from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .services.WA_sender_service import sender_handler
+from .tasks import wa_login_task
+from django.templatetags.static import static
 
 
 class WhatsAppSenderRun(APIView):
@@ -238,21 +240,26 @@ class LoginWhatsAppAccount(APIView):
     def get(self, request, WA_id):
         user = request.user
         try:
-            response_data = {
-                "status": "FAIL TRY AGAIN"
-            }
-            check_phone_obj = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
-
-            if login_to_wa_account(session_number=check_phone_obj.session_number):
-                check_phone_obj.is_login = True
-                check_phone_obj.login_date = datetime.datetime.now()
-                check_phone_obj.save()
-                response_data["status"] = "OK"
-                return Response(status=200, data=response_data)
-            else:
-                return Response(status=400, data=response_data)
+            SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+            wa_login_task.delay(wa_id=WA_id)
+            return Response(status=200)
         except ObjectDoesNotExist:
             return Response(status=404, data={"Такого аккаунта для рассылки Whats App не добавлено"})
+
+
+class GetQrCode(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, WA_id):
+        user = request.user
+        session_status = is_there_active_log_session(user, WA_id)
+        if session_status:
+            photo_url = static('qr_codes/andrey2kulagin/1/qr.jpg')
+            return Response(status=200, data={"url": photo_url})
+        elif session_status is None:
+            return Response(status=404, data={"message": "Такого аккаунта для рассылки Whats App нет"})
+        else:
+            return Response(status=404, data={"message": "Время для сканирования этого qr вышло. Сгенерируйте новый"})
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):

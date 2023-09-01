@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
-from ..models import User, SenderPhoneNumber, RecipientContact
+from ..models import User, SenderPhoneNumber, RecipientContact, AdminData
 from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image
 from io import BytesIO
@@ -15,6 +15,24 @@ import os
 from selenium.webdriver import ChromeOptions
 from django.conf import settings
 import shutil
+from rest_framework.response import Response
+
+
+def get_qr_code(user, wa_id):
+    return get_qr_path(user, wa_id) + "qr.png"
+
+
+def is_there_active_log_session(user, wa_id):
+    try:
+        account = SenderPhoneNumber.objects.get(id=wa_id, owner=user)
+        admin_data = AdminData.objects.first()
+        sec_time_from_login_req = account.get_sec_time_from_login_req
+        if sec_time_from_login_req is not None and sec_time_from_login_req < admin_data.login_duration_sec:
+            return True
+        else:
+            return False
+    except ObjectDoesNotExist:
+        return None
 
 
 def get_user_queryset(groups: list[int], contacts: list[int], user: User):
@@ -33,7 +51,7 @@ def get_user_queryset(groups: list[int], contacts: list[int], user: User):
     return total_queryset
 
 
-def gen_qr_code(driver):
+def gen_qr_code(driver, user, sender_account):
     '''Получает QR-код'''
     driver.get("https://web.whatsapp.com/")
     # скриншот элемента страницы с QR-кодом
@@ -56,8 +74,23 @@ def gen_qr_code(driver):
     bottom = location['y'] + size['height'] + 20
     im = im.crop((left, top, right, bottom))  # обрезка изображения по размерам элемента
     # сохранение изображения в файл
-    im.save('qr_code.png')
+    path = get_qr_path(user, sender_account)
+    os.makedirs(path, exist_ok=True)
+    im.save(path + "qr.png")
     print("QR_WAS_CREATE")
+
+
+def get_qr_path(user, sender_account):
+    return f"{settings.MEDIA_ROOT}qr_codes/{user.username}/{sender_account.id}/"
+
+
+def login_and_set_result(check_phone_obj):
+    check_phone_obj.last_login_request = datetime.datetime.now()
+    check_phone_obj.save()
+    res = login_to_wa_account(session_number=check_phone_obj.session_number)
+    check_phone_obj.is_login = res
+    check_phone_obj.login_date = datetime.datetime.now()
+    check_phone_obj.save()
 
 
 def login_to_wa_account(driver=None, session_number=None):
@@ -65,17 +98,18 @@ def login_to_wa_account(driver=None, session_number=None):
         shutil.rmtree(get_cookie_dir(session_number))
     except:
         print("CANT DELETE")
-        pass
     account = SenderPhoneNumber.objects.get(id=session_number)
     account.login_date = None
     account.is_login = False
     if not driver:
         driver = create_wa_driver(session_number)
-    gen_qr_code(driver)
-
+    gen_qr_code(driver, user=account.owner, sender_account=account)
     result = check_login(driver)
     driver.quit()
-    os.remove("qr_code.png")
+    try:
+        shutil.rmtree(get_qr_path(account.owner, account))
+    except:
+        pass
     return result
 
 
@@ -113,9 +147,10 @@ def check_login_view(session_id):
 
 
 def check_login(driver):
+    admin_data = AdminData.objects.first()
+    sleep_time = admin_data.sleep_time
     count_attempt = 0
-    max_attempt = 8
-    sleep_time = 10
+    max_attempt = int(admin_data.login_duration_sec / sleep_time) + 1
     is_log = is_login(driver=driver)
     while not is_log and count_attempt < max_attempt:
         time.sleep(sleep_time)
