@@ -16,10 +16,16 @@ from selenium.webdriver import ChromeOptions
 from django.conf import settings
 import shutil
 from rest_framework.response import Response
+from django.utils import timezone
+from .all_service import generate_random_string
+from django.core.files.base import ContentFile
 
 
-def get_qr_code(user, wa_id):
-    return get_qr_path(user, wa_id) + "qr.png"
+def get_qr_code_link(wa_id):
+    account = SenderPhoneNumber.objects.get(id=wa_id)
+    print(account.qr_code)
+    print(account.qr_code.url)
+    return account.qr_code.url
 
 
 def is_there_active_log_session(user, wa_id):
@@ -74,19 +80,16 @@ def gen_qr_code(driver, user, sender_account):
     bottom = location['y'] + size['height'] + 20
     im = im.crop((left, top, right, bottom))  # обрезка изображения по размерам элемента
     # сохранение изображения в файл
-    path = get_qr_path(user, sender_account)
-    os.makedirs(path, exist_ok=True)
-    im.save(path + "qr.png")
+    buffer = BytesIO()
+    im.save(buffer, format="PNG")
+    image_data = buffer.getvalue()
+    sender_account.qr_code.save(f'qr_{sender_account.id}_{generate_random_string(4)}.png', ContentFile(image_data))
+    sender_account.last_login_request = timezone.now()
+    sender_account.save()
     print("QR_WAS_CREATE")
 
 
-def get_qr_path(user, sender_account):
-    return f"{settings.MEDIA_ROOT}qr_codes/{user.username}/{sender_account.id}/"
-
-
 def login_and_set_result(check_phone_obj):
-    check_phone_obj.last_login_request = datetime.datetime.now()
-    check_phone_obj.save()
     res = login_to_wa_account(session_number=check_phone_obj.session_number)
     check_phone_obj.is_login = res
     check_phone_obj.login_date = datetime.datetime.now()
@@ -101,15 +104,16 @@ def login_to_wa_account(driver=None, session_number=None):
     account = SenderPhoneNumber.objects.get(id=session_number)
     account.login_date = None
     account.is_login = False
+    account.save()
     if not driver:
         driver = create_wa_driver(session_number)
     gen_qr_code(driver, user=account.owner, sender_account=account)
     result = check_login(driver)
     driver.quit()
-    try:
-        shutil.rmtree(get_qr_path(account.owner, account))
-    except:
-        pass
+    # удаление qr
+    if account.qr_code is not None:
+        account.qr_code.delete()
+    account.save()
     return result
 
 

@@ -124,9 +124,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = 'sources/static/'
 MEDIA_URL = 'sources/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, MEDIA_URL)
+QR_CODES_DIR = MEDIA_ROOT + "qr_codes"
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 

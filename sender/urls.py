@@ -5,8 +5,7 @@ from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, 
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
     GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
     DeleteNotCompleteImport, CheckWhatsAppAccountLogin, WhatsAppSenderRun, GetQrCode
-from django.conf import settings
-from django.conf.urls.static import static
+
 
 urlpatterns = [
     # авторизация черех JVT
@@ -77,5 +76,4 @@ urlpatterns = [
     # Рассылки
     path("mailing/WhatsApp/create", WhatsAppSenderRun.as_view(), name="WA_sender_create"),
 ]
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

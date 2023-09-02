@@ -1,7 +1,8 @@
 from django.db import models
 # Create your models here.
 from django.contrib.auth.models import AbstractUser
-from datetime import datetime
+from django.utils import timezone
+from django.conf import settings
 
 
 class User(AbstractUser):
@@ -109,7 +110,8 @@ class SenderPhoneNumber(models.Model):
     contact = models.CharField(verbose_name="Контакт", max_length=50, null=True)
     login_date = models.DateField(null=True, default=None, blank=True)
     is_login = models.BooleanField(null=True, default=False)
-    last_login_request = models.TimeField(null=True)
+    last_login_request = models.DateTimeField(null=True)
+    qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR)
 
     @property
     def session_number(self):
@@ -117,19 +119,13 @@ class SenderPhoneNumber(models.Model):
 
     @property
     def get_sec_time_from_login_req(self):
-        # Проверяем, есть ли значение last_login_request
         if self.last_login_request:
-            # Получаем текущее время
-            now = datetime.now()
-            # Вычисляем разницу во времени
-            now = datetime.now().date()
-            # Создаем объект datetime, объединяя текущую дату и last_login_request
-            last_login_datetime = datetime.combine(now, self.last_login_request)
-            # Возвращаем разницу в секундах
-            return last_login_datetime
-        else:
-            # Если last_login_request равно None, возвращаем None
-            return None
+            now = timezone.now()
+            print("NOW = ", now)
+            time_difference = now - self.last_login_request
+            print("TIME_DELTA", time_difference.total_seconds())
+            return time_difference.total_seconds()
+        return None
 
 
 class AdminData(models.Model):

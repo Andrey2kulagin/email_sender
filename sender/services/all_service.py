@@ -4,6 +4,15 @@ import re
 from django.core.validators import validate_email
 from rest_framework import serializers
 import os
+import random
+import string
+
+def generate_random_string(length):
+    # Создаем строку, состоящую из букв и цифр
+    characters = string.ascii_letters + string.digits
+    # Генерируем случайную строку указанной длины
+    random_string = ''.join(random.choice(characters) for _ in range(length))
+    return random_string
 
 
 def check_or_create_folder(folder_path):

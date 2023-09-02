@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, get_user_queryset, \
-    check_login_view, is_there_active_log_session
+    check_login_view, is_there_active_log_session, get_qr_code_link
 from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
@@ -23,7 +23,6 @@ from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .services.WA_sender_service import sender_handler
 from .tasks import wa_login_task
-from django.templatetags.static import static
 
 
 class WhatsAppSenderRun(APIView):
@@ -254,7 +253,7 @@ class GetQrCode(APIView):
         user = request.user
         session_status = is_there_active_log_session(user, WA_id)
         if session_status:
-            photo_url = static('qr_codes/andrey2kulagin/1/qr.jpg')
+            photo_url = get_qr_code_link(WA_id)
             return Response(status=200, data={"url": photo_url})
         elif session_status is None:
             return Response(status=404, data={"message": "Такого аккаунта для рассылки Whats App нет"})
