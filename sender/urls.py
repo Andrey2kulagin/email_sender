@@ -4,8 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
     GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
-    DeleteNotCompleteImport, CheckWhatsAppAccountLogin, WhatsAppSenderRun, GetQrCode
-
+    DeleteNotCompleteImport, CheckWhatsAppRun, WhatsAppSenderRun, GetQrCode, LoginSessionCheck
 
 urlpatterns = [
     # авторизация черех JVT
@@ -50,9 +49,13 @@ urlpatterns = [
     path("send_account/update/whatsApp/<int:pk>", WhatsAppAccountViewSet.as_view({'patch': 'partial_update'}),
          name="WA_update"),
     path("send_account/whatsApp/del/<int:pk>", WhatsAppAccountViewSet.as_view({'delete': 'destroy'}), name="WA_dell"),
+
     path("send_account/whatsApp/login/<int:WA_id>", LoginWhatsAppAccount.as_view(), name="WA_login"),
     path("send_account/whatsApp/login_get_qr/<int:WA_id>", GetQrCode.as_view(), name="WA_login_get_qr"),
-    path("send_account/whatsApp/check_login/<int:WA_id>", CheckWhatsAppAccountLogin.as_view(), name="WA_check_login"),
+    path("send_account/whatsApp/login_check_result/<int:WA_id>", LoginSessionCheck.as_view(), name="WA_login_get_qr"),
+
+    path("send_account/whatsApp/check_login_run/<int:WA_id>", CheckWhatsAppRun.as_view(),
+         name="WA_check_login"),
 
     # Группы контактов
     # rest
@@ -76,4 +79,3 @@ urlpatterns = [
     # Рассылки
     path("mailing/WhatsApp/create", WhatsAppSenderRun.as_view(), name="WA_sender_create"),
 ]
-

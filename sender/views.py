@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, get_user_queryset, \
-    check_login_view, is_there_active_log_session, get_qr_code_link
+    check_login_view, get_qr_handler, check_is_login_wa_account_obj
 from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,7 +22,7 @@ from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .services.WA_sender_service import sender_handler
-from .tasks import wa_login_task
+from .tasks import wa_login_task, wa_login_check_task
 
 
 class WhatsAppSenderRun(APIView):
@@ -214,21 +214,15 @@ class CheckWhatsAppContactsGroups(APIView):
             return Response(status=400)
 
 
-class CheckWhatsAppAccountLogin(APIView):
+class CheckWhatsAppRun(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, WA_id):
         user = request.user
         try:
-            check_phone_obj = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
-
-            if check_login_view(check_phone_obj.session_number):
-                return Response(status=200, data={"is_login": True})
-            else:
-                check_phone_obj.is_login = False
-                check_phone_obj.login_date = None
-                check_phone_obj.save()
-                return Response(status=200, data={"is_login": False})
+            SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+            wa_login_check_task.delay(WA_id)
+            return Response(status=200)
         except ObjectDoesNotExist:
             return Response(status=404, data={"Такого аккаунта для рассылки Whats App не добавлено"})
 
@@ -246,19 +240,21 @@ class LoginWhatsAppAccount(APIView):
             return Response(status=404, data={"Такого аккаунта для рассылки Whats App не добавлено"})
 
 
+class LoginSessionCheck(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, WA_id):
+        status_code, body = check_is_login_wa_account_obj(request.user, WA_id)
+        return Response(status=status_code, data=body)
+
+
 class GetQrCode(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, WA_id):
         user = request.user
-        session_status = is_there_active_log_session(user, WA_id)
-        if session_status:
-            photo_url = get_qr_code_link(WA_id)
-            return Response(status=200, data={"url": photo_url})
-        elif session_status is None:
-            return Response(status=404, data={"message": "Такого аккаунта для рассылки Whats App нет"})
-        else:
-            return Response(status=404, data={"message": "Время для сканирования этого qr вышло. Сгенерируйте новый"})
+        session_status, data = get_qr_handler(user, WA_id)
+        return Response(status=session_status, data=data)
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):

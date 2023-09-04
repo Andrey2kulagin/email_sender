@@ -186,7 +186,7 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
-redis = "redis://default:12345@redis-16511.c274.us-east-1-3.ec2.cloud.redislabs.com:16511"
+redis = "redis://default:seoQJapKshFQmCaHr1v1UTjMAViCHGGV@redis-18860.c98.us-east-1-4.ec2.cloud.redislabs.com:18860"
 CELERY_BROKER_URL = redis
 CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
 CELERY_RESULT_BACKEND = redis

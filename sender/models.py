@@ -108,10 +108,11 @@ class SenderPhoneNumber(models.Model):
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     title = models.CharField(verbose_name="Название", max_length=150, null=True)
     contact = models.CharField(verbose_name="Контакт", max_length=50, null=True)
-    login_date = models.DateField(null=True, default=None, blank=True)
+    login_date = models.DateTimeField(null=True, default=None, blank=True)
     is_login = models.BooleanField(null=True, default=False)
     last_login_request = models.DateTimeField(null=True)
     qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR)
+    is_login_start = models.BooleanField(default=False)
 
     @property
     def session_number(self):
@@ -127,8 +128,23 @@ class SenderPhoneNumber(models.Model):
             return time_difference.total_seconds()
         return None
 
+    @property
+    def get_sec_time_from_last_login(self):
+        if self.login_date:
+            now = timezone.now()
+            print("NOW = ", now)
+            time_difference = now - self.login_date
+            print("TIME_DELTA", time_difference.total_seconds())
+            return time_difference.total_seconds()
+        return None
+
 
 class AdminData(models.Model):
-    login_duration_sec = models.PositiveIntegerField(verbose_name="Длительность ожидания входа в WhatsApp", default=120)
-    sleep_time = models.PositiveIntegerField(verbose_name="Задержка между проверками сканирования qr", default=10)
-    timeout_before_mail_sec = models.PositiveIntegerField(verbose_name="Задержка между сообщениями", default=3)
+    login_duration_sec = models.PositiveIntegerField(verbose_name="Длительность ожидания входа в WhatsApp, сек",
+                                                     default=120)
+    sleep_time = models.PositiveIntegerField(verbose_name="Задержка между проверками сканирования qr, сек", default=10)
+    timeout_before_mail_sec = models.PositiveIntegerField(verbose_name="Задержка между сообщениями, сек", default=3)
+    check_login_time_sec = models.PositiveIntegerField(
+        verbose_name="Длительность возможности проверки входа при авторизации в WhatsApp, сек", default=120)
+    repeat_check_attempt = models.PositiveIntegerField(default=3,
+                                                       verbose_name="Кол-во попыток при повторной проверка логина в whatsApp")

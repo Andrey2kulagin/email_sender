@@ -21,24 +21,47 @@ from .all_service import generate_random_string
 from django.core.files.base import ContentFile
 
 
-def get_qr_code_link(wa_id):
-    account = SenderPhoneNumber.objects.get(id=wa_id)
-    print(account.qr_code)
-    print(account.qr_code.url)
-    return account.qr_code.url
+def check_wa_run(wa_id):
+    check_phone_obj = SenderPhoneNumber.objects.get(id=wa_id)
+    check_phone_obj.is_login = False
+    check_phone_obj.login_date = None
+    check_phone_obj.save()
+    print("Начальные данные выставлены")
+    if check_login_view(check_phone_obj.session_number, True):
+        print("Проверено")
+        check_phone_obj.is_login = True
+        check_phone_obj.login_date = datetime.datetime.now()
+        check_phone_obj.save()
 
 
-def is_there_active_log_session(user, wa_id):
+def check_is_login_wa_account_obj(user, wa_id):
+    try:
+        account = SenderPhoneNumber.objects.get(owner=user, id=wa_id)
+        admin_data = AdminData.objects.first()
+        if account.get_sec_time_from_last_login is None:
+            return 404, {"message": "Аккаунт находится на проверке, подождите"}
+        if account.get_sec_time_from_last_login <= admin_data.check_login_time_sec:
+            return 200, {"is_login": account.is_login}
+        else:
+            return 408, {"message": "Время проверки этого аккаунта истекло"}
+    except ObjectDoesNotExist:
+        return 404, {"message": "Такого аккаунта не существует"}
+
+
+def get_qr_handler(user, wa_id):
     try:
         account = SenderPhoneNumber.objects.get(id=wa_id, owner=user)
         admin_data = AdminData.objects.first()
         sec_time_from_login_req = account.get_sec_time_from_login_req
         if sec_time_from_login_req is not None and sec_time_from_login_req < admin_data.login_duration_sec:
-            return True
+            return 200, {"url": account.qr_code.url}
+
+        elif account.is_login_start:
+            return 422, {"message": "qr пока не сгенерирован"}
         else:
-            return False
+            return 404, {"message": "Нет активных сессий входа, сгенерируйте новый qr"}
     except ObjectDoesNotExist:
-        return None
+        return 404, {"message": "Нет такого аккаунта или он вам не принадлежит"}
 
 
 def get_user_queryset(groups: list[int], contacts: list[int], user: User):
@@ -90,9 +113,12 @@ def gen_qr_code(driver, user, sender_account):
 
 
 def login_and_set_result(check_phone_obj):
+    check_phone_obj.is_login_start = True
+    check_phone_obj.save()
     res = login_to_wa_account(session_number=check_phone_obj.session_number)
     check_phone_obj.is_login = res
     check_phone_obj.login_date = datetime.datetime.now()
+    check_phone_obj.is_login_start = False
     check_phone_obj.save()
 
 
@@ -143,18 +169,21 @@ def create_wa_driver(session_id=None):
     return driver
 
 
-def check_login_view(session_id):
+def check_login_view(session_id, is_repeat_check=False):
     driver = create_wa_driver(session_id)
-    result = check_login(driver)
+    result = check_login(driver, is_repeat_check)
     driver.quit()
     return result
 
 
-def check_login(driver):
+def check_login(driver, is_repeat_check=False):
     admin_data = AdminData.objects.first()
-    sleep_time = admin_data.sleep_time
     count_attempt = 0
-    max_attempt = int(admin_data.login_duration_sec / sleep_time) + 1
+    sleep_time = admin_data.sleep_time
+    if is_repeat_check:
+        max_attempt = admin_data.repeat_check_attempt
+    else:
+        max_attempt = int(admin_data.login_duration_sec / sleep_time) + 1
     is_log = is_login(driver=driver)
     while not is_log and count_attempt < max_attempt:
         time.sleep(sleep_time)
