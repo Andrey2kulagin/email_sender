@@ -122,9 +122,7 @@ class SenderPhoneNumber(models.Model):
     def get_sec_time_from_login_req(self):
         if self.last_login_request:
             now = timezone.now()
-            print("NOW = ", now)
             time_difference = now - self.last_login_request
-            print("TIME_DELTA", time_difference.total_seconds())
             return time_difference.total_seconds()
         return None
 
@@ -132,9 +130,7 @@ class SenderPhoneNumber(models.Model):
     def get_sec_time_from_last_login(self):
         if self.login_date:
             now = timezone.now()
-            print("NOW = ", now)
             time_difference = now - self.login_date
-            print("TIME_DELTA", time_difference.total_seconds())
             return time_difference.total_seconds()
         return None
 

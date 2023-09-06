@@ -21,7 +21,26 @@ from .all_service import generate_random_string
 from django.core.files.base import ContentFile
 
 
-def check_wa_run(wa_id):
+def check_cure_login_session(account: SenderPhoneNumber) -> bool:
+    """
+    проверяет, есть ли сейчас активная сессия входа/проверки входа
+    """
+    admin_data = AdminData.objects.first()
+    if account.get_sec_time_from_login_req is not None and account.get_sec_time_from_last_login is not None:
+        print("account.get_sec_time_from_login_req", account.get_sec_time_from_login_req)
+        print("admin_data.login_duration_sec", admin_data.login_duration_sec)
+        print("account.get_sec_time_from_last_login", account.get_sec_time_from_last_login)
+        print(" admin_data.check_login_time_sec", admin_data.check_login_time_sec)
+        return account.get_sec_time_from_login_req < admin_data.login_duration_sec or \
+               account.get_sec_time_from_last_login < admin_data.check_login_time_sec
+    else:
+        return False
+
+
+def check_wa_run(wa_id: int):
+    """
+    Запускает проверку входа в аккаунт
+    """
     check_phone_obj = SenderPhoneNumber.objects.get(id=wa_id)
     check_phone_obj.is_login = False
     check_phone_obj.login_date = None
@@ -34,7 +53,8 @@ def check_wa_run(wa_id):
         check_phone_obj.save()
 
 
-def check_is_login_wa_account_obj(user, wa_id):
+def check_is_login_wa_account_obj(user: User, wa_id: int):
+    """ физическая проверка состояния. Войдено или нет"""
     try:
         account = SenderPhoneNumber.objects.get(owner=user, id=wa_id)
         admin_data = AdminData.objects.first()
@@ -48,7 +68,8 @@ def check_is_login_wa_account_obj(user, wa_id):
         return 404, {"message": "Такого аккаунта не существует"}
 
 
-def get_qr_handler(user, wa_id):
+def get_qr_handler(user: User, wa_id: int) -> tuple[int, dict[str:str]]:
+    """ Функция для получения qr-кода во время входа"""
     try:
         account = SenderPhoneNumber.objects.get(id=wa_id, owner=user)
         admin_data = AdminData.objects.first()
@@ -80,7 +101,7 @@ def get_user_queryset(groups: list[int], contacts: list[int], user: User):
     return total_queryset
 
 
-def gen_qr_code(driver, user, sender_account):
+def gen_qr_code(driver: webdriver, user: User, sender_account: SenderPhoneNumber):
     '''Получает QR-код'''
     driver.get("https://web.whatsapp.com/")
     # скриншот элемента страницы с QR-кодом
@@ -107,12 +128,13 @@ def gen_qr_code(driver, user, sender_account):
     im.save(buffer, format="PNG")
     image_data = buffer.getvalue()
     sender_account.qr_code.save(f'qr_{sender_account.id}_{generate_random_string(4)}.png', ContentFile(image_data))
-    sender_account.last_login_request = timezone.now()
+    sender_account.last_login_request = datetime.datetime.now()
     sender_account.save()
     print("QR_WAS_CREATE")
 
 
 def login_and_set_result(check_phone_obj):
+    
     check_phone_obj.is_login_start = True
     check_phone_obj.save()
     res = login_to_wa_account(session_number=check_phone_obj.session_number)

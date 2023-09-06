@@ -3,7 +3,7 @@ import datetime
 from rest_framework import viewsets, permissions
 from rest_framework.viewsets import GenericViewSet
 
-from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles
+from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles, AdminData
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
     ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, WASenderSerializer
 from rest_framework import status
@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, get_user_queryset, \
-    check_login_view, get_qr_handler, check_is_login_wa_account_obj
+    check_login_view, get_qr_handler, check_is_login_wa_account_obj, check_cure_login_session
 from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
@@ -220,7 +220,9 @@ class CheckWhatsAppRun(APIView):
     def get(self, request, WA_id):
         user = request.user
         try:
-            SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+            account = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+            if check_cure_login_session(account):
+                return Response(status=409, data={"message": "У вас уже запущена сессия"})
             wa_login_check_task.delay(WA_id)
             return Response(status=200)
         except ObjectDoesNotExist:
@@ -233,11 +235,13 @@ class LoginWhatsAppAccount(APIView):
     def get(self, request, WA_id):
         user = request.user
         try:
-            SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+            account = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
+            if check_cure_login_session(account):
+                return Response(status=409, data={"message": "У вас уже запущена сессия"})
             wa_login_task.delay(wa_id=WA_id)
             return Response(status=200)
         except ObjectDoesNotExist:
-            return Response(status=404, data={"Такого аккаунта для рассылки Whats App не добавлено"})
+            return Response(status=404, data={"message": "Такого аккаунта для рассылки Whats App не добавлено"})
 
 
 class LoginSessionCheck(APIView):
