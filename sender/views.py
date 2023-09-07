@@ -4,11 +4,12 @@ import rest_framework.generics
 from rest_framework import viewsets, permissions
 from rest_framework.viewsets import GenericViewSet
 
-from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles, AdminData
+from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles, AdminData, \
+    UserSendersContactStatistic
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
     ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, \
     WASenderSerializer, \
-    UserSenders
+    UserSenders, SenderStatisticSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -28,6 +29,7 @@ from .services.WA_sender_service import sender_handler
 from .tasks import wa_login_task, wa_login_check_task, sender_run
 from rest_framework.generics import ListAPIView
 
+
 class WhatsAppSenderRun(APIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WASenderSerializer
@@ -43,8 +45,17 @@ class WhatsAppSenderRun(APIView):
         else:
             return Response(status=400)
 
+
 class SenderStatistic(ListAPIView):
-    pass
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SenderStatisticSerializer
+
+    def get_queryset(self):
+        request = self.request
+        user = request.user
+        sender_id = self.kwargs.get('id')
+        sender = UserSenders.objects.get(id=sender_id)
+        return UserSendersContactStatistic.objects.filter(user=user, sender=sender)
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
