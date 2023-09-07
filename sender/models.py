@@ -50,12 +50,19 @@ class UserLetterText(models.Model):
 
 
 class UserSenders(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    text = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    text = models.TextField(null=True)
     count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений", null=True)
-    start_date = models.DateField(auto_now_add=True)
+    start_date = models.DateTimeField(auto_now_add=True)
+    finish_date = models.DateTimeField(null=True)
+
     comment = models.TextField(null=True)
     title = models.CharField(max_length=100, null=True, blank=True, default="Без названия")
+    type_choices = [
+        ('wa', 'WhatsApp'),
+        ('em', 'Email'),
+    ]
+    type = models.CharField(max_length=2, null=True, choices=type_choices)
 
     def __str__(self):
         return self.title
@@ -108,11 +115,12 @@ class SenderPhoneNumber(models.Model):
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     title = models.CharField(verbose_name="Название", max_length=150, null=True)
     contact = models.CharField(verbose_name="Контакт", max_length=50, null=True)
-    login_date = models.DateTimeField(null=True, default=None, blank=True)
-    is_login = models.BooleanField(null=True, default=False)
-    last_login_request = models.DateTimeField(null=True)
-    qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR)
-    is_login_start = models.BooleanField(default=False)
+    login_date = models.DateTimeField(null=True, default=None, blank=True)  # дата последней успешной авторизации
+    is_login = models.BooleanField(null=True, default=False)  # авторизован ли пользователь
+    last_login_request = models.DateTimeField(null=True)  # дата последнего запроса на авторизация
+    qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR)  # поле для хранения qr-кода
+    is_login_start = models.BooleanField(
+        default=False)  # флаг, который True в течении всего процесса входа в WhatsApp с момента запроса до входа
 
     @property
     def session_number(self):

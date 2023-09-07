@@ -2,7 +2,7 @@ from abc import ABC
 
 from rest_framework import serializers
 from .models import RecipientContact, User, ContactGroup, UserSenders, SenderEmail, SenderPhoneNumber, \
-    ContactImportFiles
+    ContactImportFiles, UserSendersContactStatistic
 from sender.services.all_service import phone_normalize, is_valid_phone_number
 from .services.user_service import user_data_validate
 from .services.contact_service import recipient_contact_patch_validate, recipient_contact_all_fields_valid, \
@@ -10,6 +10,12 @@ from .services.contact_service import recipient_contact_patch_validate, recipien
 from .services.senders_account_service import email_check_null, whatsapp_check_null
 from .services.contact_import_service import contact_import_run_request_data_validate
 from .services.WA_sender_service import wa_sender_run_data_validate, wa_sender_run_account_login_validate
+
+
+class SenderStatisticSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSendersContactStatistic
+        fields = ('contact', 'is_send', 'comment')
 
 
 class WASenderSerializer(serializers.Serializer):

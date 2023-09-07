@@ -21,36 +21,27 @@ from .all_service import generate_random_string
 from django.core.files.base import ContentFile
 
 
-def check_cure_login_session(account: SenderPhoneNumber) -> bool:
-    """
-    проверяет, есть ли сейчас активная сессия входа/проверки входа
-    """
-    admin_data = AdminData.objects.first()
-    if account.get_sec_time_from_login_req is not None and account.get_sec_time_from_last_login is not None:
-        print("account.get_sec_time_from_login_req", account.get_sec_time_from_login_req)
-        print("admin_data.login_duration_sec", admin_data.login_duration_sec)
-        print("account.get_sec_time_from_last_login", account.get_sec_time_from_last_login)
-        print(" admin_data.check_login_time_sec", admin_data.check_login_time_sec)
-        return account.get_sec_time_from_login_req < admin_data.login_duration_sec or \
-               account.get_sec_time_from_last_login < admin_data.check_login_time_sec
-    else:
-        return False
-
-
 def check_wa_run(wa_id: int):
     """
     Запускает проверку входа в аккаунт
     """
     check_phone_obj = SenderPhoneNumber.objects.get(id=wa_id)
+    check_phone_obj.last_login_request = timezone.now()
+    check_phone_obj.save()
+    if not check_phone_obj.is_login:
+        return None
     check_phone_obj.is_login = False
     check_phone_obj.login_date = None
+    check_phone_obj.is_login_start = True
     check_phone_obj.save()
     print("Начальные данные выставлены")
     if check_login_view(check_phone_obj.session_number, True):
         print("Проверено")
         check_phone_obj.is_login = True
-        check_phone_obj.login_date = datetime.datetime.now()
+        check_phone_obj.login_date = timezone.now()
         check_phone_obj.save()
+    check_phone_obj.is_login_start = False
+    check_phone_obj.save()
 
 
 def check_is_login_wa_account_obj(user: User, wa_id: int):
@@ -58,9 +49,15 @@ def check_is_login_wa_account_obj(user: User, wa_id: int):
     try:
         account = SenderPhoneNumber.objects.get(owner=user, id=wa_id)
         admin_data = AdminData.objects.first()
-        if account.get_sec_time_from_last_login is None:
+        is_login_request_and_time_enough = account.get_sec_time_from_login_req is not None and account.get_sec_time_from_login_req < admin_data.login_duration_sec
+        if account.is_login_start and is_login_request_and_time_enough:
             return 404, {"message": "Аккаунт находится на проверке, подождите"}
-        if account.get_sec_time_from_last_login <= admin_data.check_login_time_sec:
+        elif account.get_sec_time_from_login_req is None:
+            return 404, {"message": "Аккаунт не входился"}
+        is_login_and_have_time = (
+                account.get_sec_time_from_last_login is not None and account.get_sec_time_from_last_login <= admin_data.check_login_time_sec)
+        not_login_but_have_time = account.get_sec_time_from_login_req < admin_data.login_duration_sec + admin_data.check_login_time_sec
+        if is_login_and_have_time or not_login_but_have_time:
             return 200, {"is_login": account.is_login}
         else:
             return 408, {"message": "Время проверки этого аккаунта истекло"}
@@ -75,10 +72,10 @@ def get_qr_handler(user: User, wa_id: int) -> tuple[int, dict[str:str]]:
         admin_data = AdminData.objects.first()
         sec_time_from_login_req = account.get_sec_time_from_login_req
         if sec_time_from_login_req is not None and sec_time_from_login_req < admin_data.login_duration_sec:
-            return 200, {"url": account.qr_code.url}
-
-        elif account.is_login_start:
-            return 422, {"message": "qr пока не сгенерирован"}
+            if account.qr_code.url is not None:
+                return 200, {"url": account.qr_code.url}
+            else:
+                return 422, {"message": "qr пока не сгенерирован"}
         else:
             return 404, {"message": "Нет активных сессий входа, сгенерируйте новый qr"}
     except ObjectDoesNotExist:
@@ -128,23 +125,24 @@ def gen_qr_code(driver: webdriver, user: User, sender_account: SenderPhoneNumber
     im.save(buffer, format="PNG")
     image_data = buffer.getvalue()
     sender_account.qr_code.save(f'qr_{sender_account.id}_{generate_random_string(4)}.png', ContentFile(image_data))
-    sender_account.last_login_request = datetime.datetime.now()
+    sender_account.last_login_request = timezone.now()
     sender_account.save()
     print("QR_WAS_CREATE")
 
 
 def login_and_set_result(check_phone_obj):
-    
+    """ входит в аккаунт общая функция для celery"""
     check_phone_obj.is_login_start = True
     check_phone_obj.save()
     res = login_to_wa_account(session_number=check_phone_obj.session_number)
     check_phone_obj.is_login = res
-    check_phone_obj.login_date = datetime.datetime.now()
+    check_phone_obj.login_date = timezone.now()
     check_phone_obj.is_login_start = False
     check_phone_obj.save()
 
 
-def login_to_wa_account(driver=None, session_number=None):
+def login_to_wa_account(driver: webdriver = None, session_number: int = None):
+    """Входит в whatsApp инициирует драйвер и генерирует qr"""
     try:
         shutil.rmtree(get_cookie_dir(session_number))
     except:
@@ -165,12 +163,14 @@ def login_to_wa_account(driver=None, session_number=None):
     return result
 
 
-def get_cookie_dir(session_id):
+def get_cookie_dir(session_id: int):
+    """ генерирует путь к папке с куки"""
     base_dir = settings.BASE_DIR
     return f"{base_dir}/sources/whats_app_sessions/{session_id}"
 
 
 def create_wa_driver(session_id=None):
+    """Создает драйвер для всей этой системы"""
     chrome_options = ChromeOptions()
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--enable-logging')
@@ -181,8 +181,6 @@ def create_wa_driver(session_id=None):
     chrome_options.add_argument('--headless')  # Включение headless режима
 
     if session_id:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Создаем путь к папке для сохранения профиля
         chrome_options.add_argument(f"--user-data-dir={get_cookie_dir(session_id)}")
 
     driver = webdriver.Chrome(options=chrome_options)
@@ -192,6 +190,7 @@ def create_wa_driver(session_id=None):
 
 
 def check_login_view(session_id, is_repeat_check=False):
+    """ Проверяет авторизован ли WhatsApp без входа"""
     driver = create_wa_driver(session_id)
     result = check_login(driver, is_repeat_check)
     driver.quit()
@@ -199,13 +198,14 @@ def check_login_view(session_id, is_repeat_check=False):
 
 
 def check_login(driver, is_repeat_check=False):
+    """ проверяет авторизацию"""
     admin_data = AdminData.objects.first()
     count_attempt = 0
     sleep_time = admin_data.sleep_time
     if is_repeat_check:
         max_attempt = admin_data.repeat_check_attempt
     else:
-        max_attempt = int(admin_data.login_duration_sec / sleep_time) + 1
+        max_attempt = int(abs(admin_data.login_duration_sec-5) / sleep_time) + 1
     is_log = is_login(driver=driver)
     while not is_log and count_attempt < max_attempt:
         time.sleep(sleep_time)
@@ -248,6 +248,7 @@ def get_active_whatsapp_account(user: User, driver=None) -> SenderPhoneNumber:
 
 
 def is_this_number_reg(driver, phone_number) -> bool:
+    """Проверяет зарегистрирован ли номер в whatsApp"""
     driver.get(f"https://web.whatsapp.com/send?phone={phone_number}&text=test")
     try:
         wrong_phone_div = WebDriverWait(driver, 10).until(
@@ -276,6 +277,6 @@ def check_whatsapp_contacts(contacts_queryset: QuerySet[RecipientContact], auth_
     driver = create_wa_driver(auth_account.session_number)
     for contact in contacts_queryset:
         contact.is_phone_whatsapp_reg = is_this_number_reg(driver, contact.phone)
-        contact.whats_reg_checked_data = datetime.datetime.now()
+        contact.whats_reg_checked_data = timezone.now()
         contact.save()
     driver.quit()

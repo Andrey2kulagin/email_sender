@@ -13,6 +13,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from ..services.whats_app_utils import check_login_view, create_wa_driver, is_this_number_reg
 from selenium.common.exceptions import TimeoutException, NoAlertPresentException, UnexpectedAlertPresentException
+from django.utils import timezone
 
 
 def set_error_message_to_statistic(statistic, message):
@@ -21,15 +22,20 @@ def set_error_message_to_statistic(statistic, message):
     statistic.save()
 
 
-def sender_handler(validated_data, user):
+def sender_handler(validated_data, user, cure_sender_obj_id):
     text = get_text(validated_data, user)
     send_accounts = send_accounts_parse(validated_data)
     all_contacts = list(get_all_contacts(validated_data, user))
     all_contacts_len = len(all_contacts)
     send_account_objects = get_send_account(validated_data, user)
     cure_contact_index = 0
-    cure_sender_obj = UserSenders.objects.create(user=user, text=text, comment=validated_data.get("comment"),
-                                                 title=validated_data.get("title"))
+    cure_sender_obj = UserSenders.objects.get(id=cure_sender_obj_id)
+    cure_sender_obj.type = "wa"
+    cure_sender_obj.user = user
+    cure_sender_obj.text = text
+    cure_sender_obj.comment = validated_data.get("comment")
+    cure_sender_obj.title = validated_data.get("title")
+    cure_sender_obj.save()
     send_messages_count = 0
     for send_account_id in send_accounts:
         send_account_object = send_account_objects.get(id=send_account_id)
@@ -73,6 +79,7 @@ def sender_handler(validated_data, user):
                 continue
         driver.quit()
     cure_sender_obj.count_letter = send_messages_count
+    cure_sender_obj.finish_date = timezone.now()
     cure_sender_obj.save()
 
 

@@ -1,17 +1,20 @@
 import datetime
 
+import rest_framework.generics
 from rest_framework import viewsets, permissions
 from rest_framework.viewsets import GenericViewSet
 
 from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles, AdminData
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
-    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, WASenderSerializer
+    ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, \
+    WASenderSerializer, \
+    UserSenders
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .services.whats_app_utils import get_active_whatsapp_account, check_whatsapp_contacts, get_user_queryset, \
-    check_login_view, get_qr_handler, check_is_login_wa_account_obj, check_cure_login_session
+    check_login_view, get_qr_handler, check_is_login_wa_account_obj
 from .services.user_service import user_create
 from .services.contact_service import delete_several_contacts, get_group_contact_count
 from django.core.exceptions import ObjectDoesNotExist
@@ -22,8 +25,8 @@ from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .services.WA_sender_service import sender_handler
-from .tasks import wa_login_task, wa_login_check_task
-
+from .tasks import wa_login_task, wa_login_check_task, sender_run
+from rest_framework.generics import ListAPIView
 
 class WhatsAppSenderRun(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -34,10 +37,14 @@ class WhatsAppSenderRun(APIView):
         if serializer.is_valid(raise_exception=True):
             validated_data = serializer.validated_data
             user = request.user
-            sender_handler(validated_data, user)
-            return Response(status=200)
+            cure_sender_obj = UserSenders.objects.create()
+            sender_run.delay(validated_data, user.id, cure_sender_obj.id)
+            return Response(status=200, data={"sender_id": cure_sender_obj.id})
         else:
             return Response(status=400)
+
+class SenderStatistic(ListAPIView):
+    pass
 
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -215,13 +222,14 @@ class CheckWhatsAppContactsGroups(APIView):
 
 
 class CheckWhatsAppRun(APIView):
+    """Проверяет вход в аккаунте:"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, WA_id):
         user = request.user
         try:
             account = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
-            if check_cure_login_session(account):
+            if account.is_login_start:
                 return Response(status=409, data={"message": "У вас уже запущена сессия"})
             wa_login_check_task.delay(WA_id)
             return Response(status=200)
@@ -230,13 +238,14 @@ class CheckWhatsAppRun(APIView):
 
 
 class LoginWhatsAppAccount(APIView):
+    """Запрос на вход в WhatsApp"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, WA_id):
         user = request.user
         try:
             account = SenderPhoneNumber.objects.get(owner=user, id=WA_id)
-            if check_cure_login_session(account):
+            if account.is_login_start:
                 return Response(status=409, data={"message": "У вас уже запущена сессия"})
             wa_login_task.delay(wa_id=WA_id)
             return Response(status=200)
@@ -245,6 +254,7 @@ class LoginWhatsAppAccount(APIView):
 
 
 class LoginSessionCheck(APIView):
+    """Проверяем вошло ли, когда сканировали QR"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, WA_id):
@@ -253,6 +263,7 @@ class LoginSessionCheck(APIView):
 
 
 class GetQrCode(APIView):
+    """Получаем qr, когда запросили вход в WhatsApp"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, WA_id):
