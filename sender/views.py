@@ -5,7 +5,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.viewsets import GenericViewSet
 
 from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, ContactGroup, ContactImportFiles, AdminData, \
-    UserSendersContactStatistic
+    UserSendersContactStatistic, ContactCheckStatistic
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
     ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, \
     WASenderSerializer, \
@@ -25,8 +25,7 @@ from .services.contact_import_service import file_upload_handler, contact_import
 from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .services.WA_sender_service import sender_handler
-from .tasks import wa_login_task, wa_login_check_task, sender_run
+from .tasks import wa_login_task, wa_login_check_task, sender_run, check_wa_group
 from rest_framework.generics import ListAPIView
 
 
@@ -235,34 +234,29 @@ class CheckAllWhatsAppNumber(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = self.request.user
-        auth_account = get_active_whatsapp_account(user=user)
-        print(auth_account)
-        if auth_account:
-            contacts_for_checking = RecipientContact.objects.filter(owner=user, phone__isnull=False,
-                                                                    is_phone_whatsapp_reg=False)
-            check_whatsapp_contacts(contacts_for_checking, auth_account)
-            return Response(status=200)
-        else:
-            "возвращаем ошибку в стиле авторизуйтесь в WhatsApp"
-            return Response(status=400)
+        stat = ContactCheckStatistic.objects.create(user=request.user)
+        check_wa_group.delay(request.user.id, stat.id, is_all=True)
+        return Response(status=200, data={"checK_obj_id": stat.id})
 
 
 class CheckWhatsAppContactsGroups(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        user = self.request.user
+        stat = ContactCheckStatistic.objects.create(user=request.user)
         groups = request.data.get("groups_id")
-        users = request.data.get("contacts_id")
-        auth_account = get_active_whatsapp_account(user=user)
-        if auth_account:
-            all_checking_obj = get_user_queryset(groups, users, self.request.user)
-            check_whatsapp_contacts(all_checking_obj, auth_account)
-            return Response(status=200)
-        else:
-            "возвращаем ошибку в стиле авторизуйтесь в WhatsApp"
-            return Response(status=400)
+        contacts = request.data.get("contacts_id")
+        check_wa_group.delay(request.user.id, stat.id, groups=groups, contacts=contacts)
+        return Response(status=200, data={"checK_obj_id": stat.id})
+
+
+class CheckContactStatus(APIView):
+    def get(self, request, stat_id):
+        try:
+            stat = ContactCheckStatistic.objects.get(id=stat_id)
+            return Response(status=200, data=stat.status_data)
+        except ObjectDoesNotExist:
+            return Response(status=404)
 
 
 class CheckWhatsAppRun(APIView):

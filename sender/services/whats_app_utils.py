@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
-from ..models import User, SenderPhoneNumber, RecipientContact, AdminData
+from ..models import User, SenderPhoneNumber, RecipientContact, AdminData, ContactCheckStatistic
 from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image
 from io import BytesIO
@@ -19,6 +19,25 @@ from rest_framework.response import Response
 from django.utils import timezone
 from .all_service import generate_random_string
 from django.core.files.base import ContentFile
+
+
+def check_contact_qs_wa(user_id, stat_id, is_all=False, groups=None, contacts=None):
+    stat = ContactCheckStatistic.objects.get(id=stat_id)
+    user = User.objects.get(id=user_id)
+    if not is_all:
+        all_checking_obj = get_user_queryset(groups, contacts, user)
+    else:
+        all_checking_obj = RecipientContact.objects.filter(owner=user, phone__isnull=False, is_phone_whatsapp_reg=False)
+    auth_account = get_active_whatsapp_account(user=user)
+    if auth_account:
+        check_whatsapp_contacts(all_checking_obj, auth_account)
+        stat.is_check_finished = True
+        stat.status_data = {"status_code": 200, "message": "Все аккаунты, которые вы передали были проверены"}
+        stat.save()
+    else:
+        stat.is_check_finished = True
+        stat.status_data = {"status_code": 400, "message": "Авторизуйтесь хотя бы в 1 аккаунте WhatsApp"}
+        stat.save()
 
 
 def check_wa_run(wa_id: int):
@@ -205,7 +224,7 @@ def check_login(driver, is_repeat_check=False):
     if is_repeat_check:
         max_attempt = admin_data.repeat_check_attempt
     else:
-        max_attempt = int(abs(admin_data.login_duration_sec-5) / sleep_time) + 1
+        max_attempt = int(abs(admin_data.login_duration_sec - 5) / sleep_time) + 1
     is_log = is_login(driver=driver)
     while not is_log and count_attempt < max_attempt:
         time.sleep(sleep_time)

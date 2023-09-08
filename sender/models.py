@@ -171,3 +171,9 @@ class AdminData(models.Model):
         verbose_name="Длительность возможности проверки входа при авторизации в WhatsApp, сек", default=120)
     repeat_check_attempt = models.PositiveIntegerField(default=3,
                                                        verbose_name="Кол-во попыток при повторной проверка логина в whatsApp")
+
+
+class ContactCheckStatistic(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    status_data = models.JSONField(default={"status_code": 202, "message": "Процесс начат, но не завершен"})
+    date = models.DateTimeField(auto_now_add=True)
