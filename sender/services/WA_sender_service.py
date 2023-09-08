@@ -49,6 +49,10 @@ def sender_handler(validated_data, user, cure_sender_obj_id):
         for i in range(send_accounts[send_account_id]):
             if all_contacts_len - cure_contact_index <= 0:
                 driver.quit()
+                cure_sender_obj.count_letter = send_messages_count
+                print("ОТПРАВЛИЛОСЬ:!!!", send_messages_count)
+                cure_sender_obj.finish_date = timezone.now()
+                cure_sender_obj.save()
                 return
             cure_contact = all_contacts[cure_contact_index]
             cure_contact_index += 1
@@ -78,6 +82,7 @@ def sender_handler(validated_data, user, cure_sender_obj_id):
                 send_messages_count += 1
                 statistic.is_send = True
                 statistic.comment = "Сообщение успешно отправлено"
+                print("УСПЕШНО ОТПРАВЛЕНО")
                 statistic.save()
             except Exception as e:
                 message = f"Сообщение не отправлено, попробуйте ещё раз. При повторении ошибки обратитесь к администратору\n Сообщение для администратора{e}"
@@ -85,6 +90,7 @@ def sender_handler(validated_data, user, cure_sender_obj_id):
                 continue
         driver.quit()
     cure_sender_obj.count_letter = send_messages_count
+    print("ОТПРАВЛИЛОСЬ:!!!", send_messages_count)
     cure_sender_obj.finish_date = timezone.now()
     cure_sender_obj.save()
 

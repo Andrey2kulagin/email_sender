@@ -135,8 +135,9 @@ class SenderPhoneNumber(models.Model):
     contact = models.CharField(verbose_name="Контакт", max_length=50, null=True)
     login_date = models.DateTimeField(null=True, default=None, blank=True)  # дата последней успешной авторизации
     is_login = models.BooleanField(null=True, default=False)  # авторизован ли пользователь
-    last_login_request = models.DateTimeField(null=True)  # дата последнего запроса на авторизация
-    qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR)  # поле для хранения qr-кода
+    last_login_request = models.DateTimeField(null=True, blank=True)  # дата последнего запроса на авторизация
+    qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR,
+                                blank=True)  # поле для хранения qr-кода
     is_login_start = models.BooleanField(
         default=False)  # флаг, который True в течении всего процесса входа в WhatsApp с момента запроса до входа
 
