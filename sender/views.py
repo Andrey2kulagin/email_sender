@@ -236,7 +236,7 @@ class CheckAllWhatsAppNumber(APIView):
     def get(self, request):
         stat = ContactCheckStatistic.objects.create(user=request.user)
         check_wa_group.delay(request.user.id, stat.id, is_all=True)
-        return Response(status=200, data={"checK_obj_id": stat.id})
+        return Response(status=200, data={"check_obj_id": stat.id})
 
 
 class CheckWhatsAppContactsGroups(APIView):
@@ -247,7 +247,7 @@ class CheckWhatsAppContactsGroups(APIView):
         groups = request.data.get("groups_id")
         contacts = request.data.get("contacts_id")
         check_wa_group.delay(request.user.id, stat.id, groups=groups, contacts=contacts)
-        return Response(status=200, data={"checK_obj_id": stat.id})
+        return Response(status=200, data={"check_obj_id": stat.id})
 
 
 class CheckContactStatus(APIView):
