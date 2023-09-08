@@ -1,6 +1,6 @@
 from cool_sender.celery import app
 from .services.whats_app_utils import login_and_set_result, check_wa_run
-from .services.WA_sender_service import sender_handler
+from .services.WA_sender_service import sender_handler, wa_sender_run_account_login_validate
 from .models import User, SenderPhoneNumber
 
 
@@ -19,3 +19,4 @@ def wa_login_check_task(wa_id):
 def sender_run(validated_data, user_id, cure_sender_obj_id):
     user = User.objects.get(id=user_id)
     sender_handler(validated_data, user, cure_sender_obj_id)
+

@@ -50,11 +50,12 @@ class UserLetterText(models.Model):
 
 
 class UserSenders(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    text = models.TextField(null=True)
-    count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений", null=True)
-    start_date = models.DateTimeField(auto_now_add=True)
-    finish_date = models.DateTimeField(null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # пользователь - владелец рассылки
+    text = models.TextField(null=True)  # текст - что вообще рассылалось
+    count_letter = models.PositiveIntegerField(verbose_name="Число отправленных сообщений", null=True,
+                                               default=0)  # Число разосланных сообщений
+    start_date = models.DateTimeField(auto_now_add=True)  # Дата создания рассылки
+    finish_date = models.DateTimeField(null=True)  # Дата окончания рассылки. Если не окончена, то None
 
     comment = models.TextField(null=True)
     title = models.CharField(max_length=100, null=True, blank=True, default="Без названия")
@@ -63,9 +64,26 @@ class UserSenders(models.Model):
         ('em', 'Email'),
     ]
     type = models.CharField(max_length=2, null=True, choices=type_choices)
+    is_error_with_accounts = models.BooleanField(default=False)  # Есть ошибка с аккаунтами
+    is_account_validation_pass = models.BooleanField(default=False)  # прошла ли валидация аккаунтов
+    account_error_msg = models.TextField(null=True)  # текст ошибки с аккаунтами
 
     def __str__(self):
         return self.title
+
+    def is_have_account_error(self):
+        if not self.is_account_validation_pass:
+            return None, ""
+        return self.is_error_with_accounts, self.account_error_msg
+
+    def is_success_stopped(self):
+        """ Есть ли успешное завершение рассылки?"""
+        if not self.is_account_validation_pass or self.is_error_with_accounts:
+            return None
+        elif self.is_account_validation_pass and not self.is_error_with_accounts and self.finish_date is not None:
+            return True
+        else:
+            return False
 
 
 class RecipientContact(models.Model):

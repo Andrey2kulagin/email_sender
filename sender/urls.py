@@ -4,7 +4,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, LoginWhatsAppAccount, \
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
     GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
-    DeleteNotCompleteImport, CheckWhatsAppRun, WhatsAppSenderRun, GetQrCode, LoginSessionCheck, SenderStatistic
+    DeleteNotCompleteImport, CheckWhatsAppRun, WhatsAppSenderRun, GetQrCode, LoginSessionCheck, SenderStatistic, \
+    CheckIsValidationSuccessPass, CheckIsSuccessFinished
 
 urlpatterns = [
     # авторизация черех JVT
@@ -78,6 +79,11 @@ urlpatterns = [
 
     # Рассылки
     path("mailing/WhatsApp/create", WhatsAppSenderRun.as_view(), name="WA_sender_create"),
+    path("mailing/WhatsApp/is_validation_passed/<int:sender_id>", CheckIsValidationSuccessPass.as_view(),
+         name="WA_sender_is_validation_passed"),
+    path("mailing/WhatsApp/is_success_finished/<int:sender_id>", CheckIsSuccessFinished.as_view(),
+         name="WA_sender_is_success_finished"),
+
     path("mailing/statistic/<int:id>", SenderStatistic.as_view(), name="sender_statistic"),
 
 ]

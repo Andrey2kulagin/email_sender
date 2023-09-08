@@ -31,7 +31,6 @@ class WASenderSerializer(serializers.Serializer):
         request = self.context.get('request')
         user = request.user
         data = wa_sender_run_data_validate(data, user)
-        wa_sender_run_account_login_validate(data, user)
         return data
 
 

@@ -36,6 +36,12 @@ def sender_handler(validated_data, user, cure_sender_obj_id):
     cure_sender_obj.comment = validated_data.get("comment")
     cure_sender_obj.title = validated_data.get("title")
     cure_sender_obj.save()
+    res, msg = wa_sender_run_account_login_validate(validated_data, user)
+    cure_sender_obj.is_account_validation_pass = True
+    cure_sender_obj.is_error_with_accounts = not res
+    if not res:
+        cure_sender_obj.account_error_msg = msg
+    cure_sender_obj.save()
     send_messages_count = 0
     for send_account_id in send_accounts:
         send_account_object = send_account_objects.get(id=send_account_id)
@@ -218,9 +224,8 @@ def wa_sender_run_account_login_validate(data, user):
             account.save()
             not_login_ids.append(account.id)
     if len(not_login_ids) != 0:
-        raise serializers.ValidationError(
-            f"При проверке обнаружилось, что произведён выход из части аккаунтов. Войдите, пожалуйста в аккаунты со "
-            f"следующими id{not_login_ids}")
+        return False, f"При проверке обнаружилось, что произведён выход из части аккаунтов. Войдите, пожалуйста в аккаунты со следующими id{not_login_ids}"
+    return True, ""
 
 
 def send_msg(driver, phone_no, text):

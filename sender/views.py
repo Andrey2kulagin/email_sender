@@ -30,7 +30,40 @@ from .tasks import wa_login_task, wa_login_check_task, sender_run
 from rest_framework.generics import ListAPIView
 
 
+class CheckIsSuccessFinished(APIView):
+    def get(self, request, sender_id):
+        try:
+            user = request.user
+            sender_obj = UserSenders.objects.get(id=sender_id, user=user)
+            res = sender_obj.is_success_stopped()
+            if res is None:
+                return Response(status=200, data={"status_code": 400, "message": "Данная рассылка не прошла валидацию"})
+            elif res:
+                return Response(status=200, data={"status_code": 200, "message": "Успешно завершена"})
+            else:
+                return Response(status=200, data={"status_code": 202, "message": "В процессе"})
+        except ObjectDoesNotExist:
+            return Response(status=404, data={"У вас нет такого объекта"})
+
+
+class CheckIsValidationSuccessPass(APIView):
+    def get(self, request, sender_id):
+        try:
+            user = request.user
+            sender_obj = UserSenders.objects.get(id=sender_id, user=user)
+            res, msg = sender_obj.is_have_account_error()
+            if res is None:
+                return Response(status=200, data={"status_code": 422, "message": "Проверка пока проводится"})
+            elif res:
+                return Response(status=200, data={"status_code": 400, "message": msg})
+            else:
+                return Response(status=200, data={"status_code": 200, "message": ""})
+        except ObjectDoesNotExist:
+            return Response(status=404, data={"У вас нет такого объекта"})
+
+
 class WhatsAppSenderRun(APIView):
+    """ Запуск рассылки """
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WASenderSerializer
 
@@ -43,7 +76,7 @@ class WhatsAppSenderRun(APIView):
             sender_run.delay(validated_data, user.id, cure_sender_obj.id)
             return Response(status=200, data={"sender_id": cure_sender_obj.id})
         else:
-            return Response(status=400)
+            return Response(status=400, data={"message": "Непредвиденная ошибка"})
 
 
 class SenderStatistic(ListAPIView):
