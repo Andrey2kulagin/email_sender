@@ -12,13 +12,26 @@ from .services.contact_import_service import contact_import_run_request_data_val
 from .services.WA_sender_service import wa_sender_run_data_validate, wa_sender_run_account_login_validate
 
 
+class SenderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSenders
+        fields = ('id', 'type', 'title', 'start_date', "finish_date", "count_letter")
+
+
 class SenderStatisticSerializer(serializers.ModelSerializer):
+    contact_str = serializers.SerializerMethodField()
+
     class Meta:
         model = UserSendersContactStatistic
-        fields = ('contact', 'is_send', 'comment')
+        fields = ('contact', 'contact_str', 'is_send', 'comment')
+
+    def get_contact_str(self, obj):
+        # Возвращаем результат метода __str__ модели RecipientContact
+        return str(obj.contact)
 
 
 class WASenderSerializer(serializers.Serializer):
+    """ Для приема параметров на рассылку"""
     text_id = serializers.IntegerField(min_value=0, required=False)
     text = serializers.CharField(required=False)
     title = serializers.CharField(required=False)

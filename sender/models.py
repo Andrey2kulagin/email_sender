@@ -100,13 +100,18 @@ class RecipientContact(models.Model):
     comment = models.TextField(null=True, blank=True)
 
     def __str__(self):
+        base_str = ""
+        if self.name is not None:
+            base_str += f"{self.name} - "
+        if self.surname is not None:
+            base_str += f"{self.surname} - "
         if self.phone and self.email:
-            return f"{self.owner.username} - {self.phone} - {self.email}"
+            return f"{base_str}{self.phone} - {self.email}"
         if self.phone:
-            return f"{self.owner.username} - {self.phone}"
+            return f"{base_str}{self.phone}"
         if self.email:
-            return f"{self.owner.username} - {self.email}"
-        return f"{self.owner.username}"
+            return f"{base_str}{self.email}"
+        return f"{base_str}"
 
 
 class UserSendersContactStatistic(models.Model):
@@ -136,7 +141,7 @@ class SenderPhoneNumber(models.Model):
     login_date = models.DateTimeField(null=True, default=None, blank=True)  # дата последней успешной авторизации
     is_login = models.BooleanField(null=True, default=False)  # авторизован ли пользователь
     last_login_request = models.DateTimeField(null=True, blank=True)  # дата последнего запроса на авторизация
-    qr_code = models.ImageField(default=None, null=True, upload_to=settings.QR_CODES_DIR,
+    qr_code = models.ImageField(default=None, null=True, upload_to='qr_codes/',
                                 blank=True)  # поле для хранения qr-кода
     is_login_start = models.BooleanField(
         default=False)  # флаг, который True в течении всего процесса входа в WhatsApp с момента запроса до входа

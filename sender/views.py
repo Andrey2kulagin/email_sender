@@ -8,8 +8,7 @@ from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, Cont
     UserSendersContactStatistic, ContactCheckStatistic
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
     ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, \
-    WASenderSerializer, \
-    UserSenders, SenderStatisticSerializer
+    WASenderSerializer, UserSenders, SenderStatisticSerializer, SenderSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -26,7 +25,27 @@ from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .tasks import wa_login_task, wa_login_check_task, sender_run, check_wa_group
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+
+
+class SendersGet(RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SenderSerializer
+
+    def get_queryset(self):
+        request = self.request
+        user = request.user
+        return UserSenders.objects.filter(user=user).exclude(finish_date=None)
+
+
+class SendersList(ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = SenderSerializer
+
+    def get_queryset(self):
+        request = self.request
+        user = request.user
+        return UserSenders.objects.filter(user=user).exclude(finish_date=None)
 
 
 class CheckIsSuccessFinished(APIView):

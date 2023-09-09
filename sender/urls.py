@@ -5,7 +5,7 @@ from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, 
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
     GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
     DeleteNotCompleteImport, CheckWhatsAppRun, WhatsAppSenderRun, GetQrCode, LoginSessionCheck, SenderStatistic, \
-    CheckIsValidationSuccessPass, CheckIsSuccessFinished, CheckContactStatus
+    CheckIsValidationSuccessPass, CheckIsSuccessFinished, CheckContactStatus, SendersGet, SendersList
 
 urlpatterns = [
     # авторизация черех JVT
@@ -33,7 +33,6 @@ urlpatterns = [
     path('contact:check_whats_app_number', CheckWhatsAppContactsGroups.as_view()),
     path('contact/check_wa_number/status/<int:stat_id>', CheckContactStatus.as_view()),
     path('contact/get_in_group_count/<int:pk>', GetContactsInGroupCount.as_view(), name="contact_count_in_group"),
-
 
     # email sender accounts
     path("send_account/email/<int:pk>", EmailAccountViewSet.as_view({'get': 'retrieve'}), name="email_get"),
@@ -79,7 +78,11 @@ urlpatterns = [
     path("import/errors_file/<int:import_id>", ImportBugsFileAPIView.as_view(), name="import_report"),
     path("import/delete/<int:import_id>", DeleteNotCompleteImport.as_view(), name="import_delete"),
 
-    # Рассылки
+    # Рассылки - общее
+    path("mailing/<int:pk>", SendersGet.as_view(), name="sender_get"),
+    path("mailing/list", SendersList.as_view(), name="sender_list"),
+    path("mailing/statistic/<int:id>", SenderStatistic.as_view(), name="sender_statistic"),
+
     path("mailing/WhatsApp/create", WhatsAppSenderRun.as_view(), name="WA_sender_create"),
     path("mailing/WhatsApp/is_validation_passed/<int:sender_id>", CheckIsValidationSuccessPass.as_view(),
          name="WA_sender_is_validation_passed"),
