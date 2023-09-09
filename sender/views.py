@@ -8,7 +8,7 @@ from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, Cont
     UserSendersContactStatistic, ContactCheckStatistic
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
     ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, \
-    WASenderSerializer, UserSenders, SenderStatisticSerializer, SenderSerializer
+    WASenderSerializer, UserSenders, SenderStatisticSerializer, SenderSerializer, WaAccountCheckSerializer, EmailCheckSeveralSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -26,6 +26,17 @@ from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .tasks import wa_login_task, wa_login_check_task, sender_run, check_wa_group
 from rest_framework.generics import ListAPIView, RetrieveAPIView
+from .services.email_service import check_login_emails, get_checked_emails
+
+class EmailCheck(APIView):
+    def post(self, request):
+        serializer = EmailCheckSeveralSerializer(data=request.data)  # Используйте ваш сериализатор
+        if serializer.is_valid():
+            data = serializer.validated_data
+            check_login_emails(get_checked_emails(request.user, data.get("email_ids", [])))
+            return Response(status=200, data=)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=serializer.errors)
 
 
 class SendersGet(RetrieveAPIView):
@@ -207,11 +218,15 @@ class ContactDeleteSeveral(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        user = request.user
-        groups = request.data.get("groups_ids", [])
-        contacts = request.data.get("contact_ids", [])
-        data = delete_several_contacts(user, contacts, groups)
-        return Response(status=200, data=data)
+        serializer = WaAccountCheckSerializer(data=request.data)  # Используйте ваш сериализатор
+        if serializer.is_valid():
+            user = request.user
+            groups = serializer.validated_data.get("groups_ids", [])
+            contacts = serializer.validated_data.get("contact_ids", [])
+            data = delete_several_contacts(user, contacts, groups)
+            return Response(status=200, data=data)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=serializer.errors)
 
 
 class WhatsAppAccountViewSet(viewsets.ModelViewSet):
@@ -262,11 +277,15 @@ class CheckWhatsAppContactsGroups(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        stat = ContactCheckStatistic.objects.create(user=request.user)
-        groups = request.data.get("groups_id")
-        contacts = request.data.get("contacts_id")
-        check_wa_group.delay(request.user.id, stat.id, groups=groups, contacts=contacts)
-        return Response(status=200, data={"check_obj_id": stat.id})
+        serializer = WaAccountCheckSerializer(data=request.data)
+        if serializer.is_valid():
+            groups = serializer.validated_data.get("groups_ids", [])
+            contacts = serializer.validated_data.get("contact_ids", [])
+            stat = ContactCheckStatistic.objects.create(user=request.user)
+            check_wa_group.delay(request.user.id, stat.id, groups=groups, contacts=contacts)
+            return Response(status=200, data={"check_obj_id": stat.id})
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=serializer.errors)
 
 
 class CheckContactStatus(APIView):

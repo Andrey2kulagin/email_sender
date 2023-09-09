@@ -132,6 +132,7 @@ class SenderEmail(models.Model):
     password = models.CharField(max_length=50)
     checked_date = models.DateField(null=True, default=None)
     is_check_pass = models.BooleanField(null=True, default=None)
+    login_error_msg = models.TextField(null=True)
 
 
 class SenderPhoneNumber(models.Model):

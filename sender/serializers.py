@@ -12,6 +12,15 @@ from .services.contact_import_service import contact_import_run_request_data_val
 from .services.WA_sender_service import wa_sender_run_data_validate, wa_sender_run_account_login_validate
 
 
+class EmailCheckSeveralSerializer(serializers.Serializer):
+    email_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+
+
+class WaAccountCheckSerializer(serializers.Serializer):
+    groups_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+    contact_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+
+
 class SenderSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSenders
@@ -133,6 +142,7 @@ class EmailAccountSerializer(serializers.ModelSerializer):
                   'password',
                   'checked_date',
                   'is_check_pass',
+                  "login_error_msg"
                   )
 
     def update(self, instance, validated_data):
