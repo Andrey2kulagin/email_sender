@@ -11,6 +11,8 @@ from .services.senders_account_service import email_check_null, whatsapp_check_n
 from .services.contact_import_service import contact_import_run_request_data_validate
 from .services.WA_sender_service import wa_sender_run_data_validate, wa_sender_run_account_login_validate
 from .services.email_service import email_account_run_validate, email_sender_run_data_validate
+from django.core.exceptions import ObjectDoesNotExist
+
 
 class EmailCheckSeveralSerializer(serializers.Serializer):
     email_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
@@ -136,6 +138,13 @@ class WhatsAppAccountSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         phone_norm = phone_normalize(data.get("contact"))
+        try:
+            request = self.context.get('request')
+            user = request.user
+            SenderPhoneNumber.objects.get(owner=user, contact=phone_norm)
+            raise serializers.ValidationError("У вас уже есть аккаунт с таким контактом")
+        except ObjectDoesNotExist:
+            pass
         if not is_valid_phone_number(phone_norm):
             raise serializers.ValidationError("Номер не валидный")
         data["contact"] = phone_norm
@@ -163,6 +172,17 @@ class EmailAccountSerializer(serializers.ModelSerializer):
                   'is_check_pass',
                   "login_error_msg"
                   )
+
+    def validate(self, data):
+        try:
+            request = self.context.get('request')
+            email = data.get("contact")
+            user = request.user
+            SenderEmail.objects.get(owner=user, contact=email)
+            raise serializers.ValidationError("У вас уже есть аккаунт с таким контактом")
+        except ObjectDoesNotExist:
+            pass
+        return super().validate(data)
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
@@ -211,6 +231,7 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
+
         return recipient_contact_update(validated_data, instance)
 
     def validate(self, data):
@@ -218,7 +239,6 @@ class RecipientContactSerializer(serializers.ModelSerializer):
         error_missing_contacts = "Заполните хотя бы один контакт"
         email_valid_error = "Введите правильный email"
         phone_valid_error = "Неправильный номер телефона. Должно быть 11 цифр и начинаться должен с 8 или +7"
-        cure_id = request
         # проверяем все поля на валидность
         if request.method == "PATCH":
             view = self.context['view']

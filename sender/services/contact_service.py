@@ -50,11 +50,11 @@ def recipient_contact_update(validated_data, instance):
 
 
 def set_m2m_fields_to_recipient_contact(contact_group: list, instance: RecipientContact, senders: list):
-    if contact_group:
+    if contact_group is not None:
         instance.contact_group.clear()
         for group in contact_group:
             instance.contact_group.add(group)
-    if senders:
+    if senders is not None:
         instance.senders.clear()
         for sender in senders:
             instance.senders.add(sender)
