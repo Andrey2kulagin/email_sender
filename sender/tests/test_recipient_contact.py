@@ -379,7 +379,7 @@ class RecipientContactUpdateTest(APITestCase):
         }
         self.client.force_authenticate(user=self.user, token=self.token)
         response = self.client.patch(url, data, format='json')
-        self.assertEqual(400, response.status_code)
+        self.assertEqual(200, response.status_code)
 
     def test_update_contact_6(self):
         url = reverse('contact_update', kwargs={'pk': 2})

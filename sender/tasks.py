@@ -2,7 +2,7 @@ from cool_sender.celery import app
 from .services.whats_app_utils import login_and_set_result, check_wa_run, check_contact_qs_wa
 from .services.WA_sender_service import sender_handler, wa_sender_run_account_login_validate
 from .models import User, SenderPhoneNumber
-
+from .services.email_service import email_sender_run
 
 @app.task
 def wa_login_task(wa_id):
@@ -19,6 +19,12 @@ def wa_login_check_task(wa_id):
 def sender_run(validated_data, user_id, cure_sender_obj_id):
     user = User.objects.get(id=user_id)
     sender_handler(validated_data, user, cure_sender_obj_id)
+
+@app.task
+def email_sender_task(validated_data, user_id, cure_sender_obj_id):
+    print("USER_ID",user_id)
+    user = User.objects.get(id=user_id)
+    email_sender_run(validated_data, user, cure_sender_obj_id)
 
 
 @app.task

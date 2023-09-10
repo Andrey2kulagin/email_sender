@@ -8,7 +8,7 @@ from io import BytesIO
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from ..models import UserLetterText, SenderPhoneNumber, ContactGroup, RecipientContact, UserSenders, \
-    UserSendersContactStatistic
+    UserSendersContactStatistic, SenderEmail
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from ..services.whats_app_utils import check_login_view, create_wa_driver, is_this_number_reg
@@ -139,14 +139,14 @@ def get_all_contacts(validated_data, user):
     return None
 
 
-def wa_text_id_validate(text_id, user):
+def text_id_validate(text_id, user):
     try:
         UserLetterText.objects.exclude(text=None).get(id=text_id, user=user)
     except ObjectDoesNotExist:
         raise serializers.ValidationError("У вас нет такого текста для рассылки или текст письма не заполнен")
 
 
-def wa_send_account_validate(data, user):
+def send_account_validate(data, user, type="wa"):
     send_accounts = data.get("send_accounts")
     if send_accounts is None:
         return
@@ -164,17 +164,20 @@ def wa_send_account_validate(data, user):
             except ValueError:
                 raise serializers.ValidationError(f"Ошибка в send_accounts в {i} letter_count должно быть числом")
             try:
-                account_obj = SenderPhoneNumber.objects.get(owner=user, id=account_id)
-                if not account_obj.is_login:
-                    raise serializers.ValidationError(
-                        f"Ошибка в send_accounts в {i} Требуется войти в аккаунт с ID {account_id}")
+                if type=="wa":
+                    account_obj = SenderPhoneNumber.objects.get(owner=user, id=account_id)
+                    if not account_obj.is_login:
+                        raise serializers.ValidationError(
+                            f"Ошибка в send_accounts в {i} Требуется войти в аккаунт с ID {account_id}")
+                elif type == "email":
+                    SenderEmail.objects.get(owner=user, id=account_id)
             except ObjectDoesNotExist:
                 raise serializers.ValidationError(f"Ошибка в send_accounts в {i} У вас нет аккаунта с id {account_id}")
         except ValueError:
             raise serializers.ValidationError(f"Ошибка в send_accounts в {i} не хватает аргументов")
 
 
-def wa_contact_group_validate(contact_groups, user):
+def contact_group_validate(contact_groups, user):
     if contact_groups is None:
         return
     for i in contact_groups:
@@ -184,7 +187,7 @@ def wa_contact_group_validate(contact_groups, user):
             raise serializers.ValidationError(f"У вас нет группы с id {i}")
 
 
-def wa_contacts_validate(contacts, user):
+def contacts_validate(contacts, user):
     for contact in contacts:
         try:
             RecipientContact.objects.get(owner=user, id=contact)
@@ -195,16 +198,16 @@ def wa_contacts_validate(contacts, user):
 def wa_sender_run_data_validate(data, user):
     text_id = data.get("text_id")
     if text_id is not None:
-        wa_text_id_validate(text_id, user)
+        text_id_validate(text_id, user)
     elif data.get("text") is None:
         raise serializers.ValidationError("Должен быть заполнен контент письма. Либо текст, либо text_id")
     contact_groups = data.get("contacts_group")
     contacts = data.get("contacts")
     if contact_groups is None and contacts is None:
         raise serializers.ValidationError("Передайте хотя бы одну группу или получателя")
-    wa_send_account_validate(data, user)
-    wa_contact_group_validate(contact_groups, user)
-    wa_contacts_validate(contacts, user)
+    send_account_validate(data, user)
+    contact_group_validate(contact_groups, user)
+    contacts_validate(contacts, user)
     return data
 
 

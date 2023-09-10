@@ -4,6 +4,43 @@ from rest_framework.authtoken.models import Token
 from django.urls import reverse
 
 
+class TestEmailLogin(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='testuser@mail.com', password='password')
+        self.token = Token.objects.create(user=self.user)
+        self.token.save()
+        self.email_1 = SenderEmail.objects.create(owner=self.user, contact="test_email@yandex.ru",
+                                                  title="email1", password="qwer123")
+        self.email_2 = SenderEmail.objects.create(owner=self.user, contact="test_email1@mail.ru", password="qwer123",
+                                                  title="email2")
+
+        self.email_3 = SenderEmail.objects.create(owner=self.user, contact="test_email1@gmail.com",
+                                                  title="email3")
+
+        self.email_4 = SenderEmail.objects.create(owner=self.user, contact="test_email1@gma.com",
+                                                  title="email4", password="qwer123")
+
+    def test_several_valid_1(self):
+        url = reverse('email_check_several')
+        self.client.force_authenticate(user=self.user, token=self.token)
+        response = self.client.post(url, format='json', data={"email_ids": [1, 2, 3, 4]})
+        data = response.data
+        self.assertEqual(200, response.status_code)
+        email_1 = SenderEmail.objects.get(id=1)
+        email_2 = SenderEmail.objects.get(id=2)
+        email_3 = SenderEmail.objects.get(id=3)
+        email_4 = SenderEmail.objects.get(id=4)
+        self.assertEqual(email_1.is_check_pass, False)
+        self.assertEqual(email_2.is_check_pass, False)
+        self.assertEqual(email_3.is_check_pass, False)
+        self.assertEqual(email_4.is_check_pass, False)
+        self.assertEqual(email_1.login_error_msg, "Неправильный код доступа")
+        self.assertEqual(email_2.login_error_msg, "Неправильный код доступа")
+        self.assertEqual(email_3.login_error_msg, "Нет кода доступа")
+        self.assertEqual(email_4.login_error_msg, "Мы поддерживаем только почты ('yandex.ru', 'mail.ru', 'gmail.com')")
+
+
 class EmailAccountTest(APITestCase):
 
     def setUp(self):

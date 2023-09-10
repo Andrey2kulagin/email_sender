@@ -10,7 +10,7 @@ from .services.contact_service import recipient_contact_patch_validate, recipien
 from .services.senders_account_service import email_check_null, whatsapp_check_null
 from .services.contact_import_service import contact_import_run_request_data_validate
 from .services.WA_sender_service import wa_sender_run_data_validate, wa_sender_run_account_login_validate
-
+from .services.email_service import email_account_run_validate, email_sender_run_data_validate
 
 class EmailCheckSeveralSerializer(serializers.Serializer):
     email_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
@@ -37,6 +37,25 @@ class SenderStatisticSerializer(serializers.ModelSerializer):
     def get_contact_str(self, obj):
         # Возвращаем результат метода __str__ модели RecipientContact
         return str(obj.contact)
+
+
+class EmailSenderSerializer(serializers.Serializer):
+    """ Для приема параметров на рассылку"""
+    text_id = serializers.IntegerField(min_value=0, required=False)
+    mailing_subject = serializers.CharField(max_length=50, required=True)
+    text = serializers.CharField(required=False)
+    title = serializers.CharField(required=False)
+    send_accounts = serializers.ListField(child=serializers.CharField(), required=True)
+    contacts_group = serializers.ListField(child=serializers.IntegerField(min_value=0), required=False)
+    contacts = serializers.ListField(child=serializers.IntegerField(min_value=0), required=False)
+    comment = serializers.CharField(required=False)
+
+    def validate(self, data):
+        request = self.context.get('request')
+        user = request.user
+        email_account_run_validate(data, user)
+        data = email_sender_run_data_validate(data, user)
+        return data
 
 
 class WASenderSerializer(serializers.Serializer):

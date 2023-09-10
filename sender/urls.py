@@ -5,7 +5,8 @@ from .views import ContactViewSet, RegistrationViewSet, CheckAllWhatsAppNumber, 
     CheckWhatsAppContactsGroups, EmailAccountViewSet, WhatsAppAccountViewSet, ContactDeleteSeveral, ContactGroupRest, \
     GetContactsInGroupCount, LoadContactImportFile, ContactRunImport, ImportViewSet, ImportBugsFileAPIView, \
     DeleteNotCompleteImport, CheckWhatsAppRun, WhatsAppSenderRun, GetQrCode, LoginSessionCheck, SenderStatistic, \
-    CheckIsValidationSuccessPass, CheckIsSuccessFinished, CheckContactStatus, SendersGet, SendersList
+    CheckIsValidationSuccessPass, CheckIsSuccessFinished, CheckContactStatus, SendersGet, SendersList, EmailCheck, \
+    EmailSenderRun
 
 urlpatterns = [
     # авторизация черех JVT
@@ -41,8 +42,8 @@ urlpatterns = [
     path("send_account/update/email/<int:pk>", EmailAccountViewSet.as_view({'patch': 'partial_update'}),
          name="email_update"),
     path("send_account/email/del/<int:pk>", EmailAccountViewSet.as_view({'delete': 'destroy'}), name="email_dell"),
-    # path("send_account/email/<int:pk>:check", name="email_check"),  # Сделать!!!!
-    # path("send_account/email:check_all", name="all_email_check"),  # Сделать!!!!
+    path("send_account/email/check_several", EmailCheck.as_view(), name="email_check_several"),
+    path("send_account/email/check_all", EmailCheck.as_view(), name="all_email_check"),
 
     # WHATSAPP
     path("send_account/whatsApp/<int:pk>", WhatsAppAccountViewSet.as_view({'get': 'retrieve'}), name="WA_get"),
@@ -82,13 +83,17 @@ urlpatterns = [
     path("mailing/<int:pk>", SendersGet.as_view(), name="sender_get"),
     path("mailing/list", SendersList.as_view(), name="sender_list"),
     path("mailing/statistic/<int:id>", SenderStatistic.as_view(), name="sender_statistic"),
+    path("mailing/statistic/<int:id>", SenderStatistic.as_view(), name="sender_statistic"),
+    path("mailing/is_success_finished/<int:sender_id>", CheckIsSuccessFinished.as_view(),
+         name="WA_sender_is_success_finished"),
 
+    # рассылки WhatsApp
     path("mailing/WhatsApp/create", WhatsAppSenderRun.as_view(), name="WA_sender_create"),
     path("mailing/WhatsApp/is_validation_passed/<int:sender_id>", CheckIsValidationSuccessPass.as_view(),
          name="WA_sender_is_validation_passed"),
-    path("mailing/WhatsApp/is_success_finished/<int:sender_id>", CheckIsSuccessFinished.as_view(),
-         name="WA_sender_is_success_finished"),
 
-    path("mailing/statistic/<int:id>", SenderStatistic.as_view(), name="sender_statistic"),
+
+    # Рассылки Email
+    path("mailing/Email/create", EmailSenderRun.as_view(), name="email_sender_create"),
 
 ]

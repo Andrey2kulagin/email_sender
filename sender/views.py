@@ -8,7 +8,8 @@ from .models import RecipientContact, User, SenderPhoneNumber, SenderEmail, Cont
     UserSendersContactStatistic, ContactCheckStatistic
 from .serializers import RecipientContactSerializer, UserSerializer, EmailAccountSerializer, WhatsAppAccountSerializer, \
     ContactGroupSerializer, ImportFileUploadSerializer, ContactRunImportSerializer, ImportSerializer, \
-    WASenderSerializer, UserSenders, SenderStatisticSerializer, SenderSerializer, WaAccountCheckSerializer, EmailCheckSeveralSerializer
+    WASenderSerializer, UserSenders, SenderStatisticSerializer, SenderSerializer, WaAccountCheckSerializer, \
+    EmailCheckSeveralSerializer, EmailSenderSerializer
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,9 +25,28 @@ from .services.contact_import_service import file_upload_handler, contact_import
 from rest_framework import mixins
 from django.http import FileResponse
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .tasks import wa_login_task, wa_login_check_task, sender_run, check_wa_group
+from .tasks import wa_login_task, wa_login_check_task, sender_run, check_wa_group, email_sender_task
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from .services.email_service import check_login_emails, get_checked_emails
+
+
+class EmailSenderRun(APIView):
+    """ Запуск рассылки """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmailSenderSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = EmailSenderSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid(raise_exception=True):
+            validated_data = serializer.validated_data
+
+            cure_sender_obj = UserSenders.objects.create(user=request.user, is_account_validation_pass=True, )
+            print(request.user.id)
+            email_sender_task.delay(validated_data, request.user.id, cure_sender_obj.id)
+            return Response(status=200, data={"sender_id": cure_sender_obj.id})
+        else:
+            return Response(status=400, data={"message": "Непредвиденная ошибка"})
+
 
 class EmailCheck(APIView):
     def post(self, request):
@@ -34,9 +54,14 @@ class EmailCheck(APIView):
         if serializer.is_valid():
             data = serializer.validated_data
             check_login_emails(get_checked_emails(request.user, data.get("email_ids", [])))
-            return Response(status=200, data=)
+            return Response(status=200, data={"message": "Проверка прошла успешно, статусы аккаунтов изменились"})
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data=serializer.errors)
+
+    def get(self, request):
+        all_accounts = SenderEmail.objects.filter(owner=request.user)
+        check_login_emails(all_accounts)
+        return Response(status=200, data={"message": "Проверка прошла успешно, статусы аккаунтов изменились"})
 
 
 class SendersGet(RetrieveAPIView):

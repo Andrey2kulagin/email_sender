@@ -128,11 +128,11 @@ class UserSendersContactStatistic(models.Model):
 class SenderEmail(models.Model):
     owner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     contact = models.CharField(verbose_name="Контакт", max_length=50)
-    title = models.CharField(verbose_name="Название", max_length=150, null=True)
-    password = models.CharField(max_length=50)
-    checked_date = models.DateField(null=True, default=None)
-    is_check_pass = models.BooleanField(null=True, default=None)
-    login_error_msg = models.TextField(null=True)
+    title = models.CharField(verbose_name="Название", max_length=150, null=True, blank=True)
+    password = models.CharField(max_length=50, blank=True, null=True)
+    checked_date = models.DateField(null=True, default=None, blank=True)
+    is_check_pass = models.BooleanField(null=True, default=None, blank=True)
+    login_error_msg = models.TextField(null=True, blank=True)
 
 
 class SenderPhoneNumber(models.Model):

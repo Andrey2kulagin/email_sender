@@ -39,6 +39,7 @@ def handler():
                 message["To"] = to_email
                 # Отправляем письмо
                 server.sendmail(from_email, to_email, message.as_string())
+                server.quit()
                 print(f"Отправлено сообщение на {to_email}")
             except:
                 print(f"Не отправлено на {to_email}\n Она валидна?")
