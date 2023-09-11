@@ -124,7 +124,7 @@ class ContactGroupSerializer(serializers.ModelSerializer):
 
 class WhatsAppAccountSerializer(serializers.ModelSerializer):
     is_login = serializers.BooleanField(read_only=True)
-    login_date = serializers.DateField(read_only=True)
+    login_date = serializers.DateTimeField(read_only=True)
     id = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -158,7 +158,7 @@ class WhatsAppAccountSerializer(serializers.ModelSerializer):
 
 class EmailAccountSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=50, write_only=True)
-    checked_date = serializers.DateField(read_only=True)
+    checked_date = serializers.DateTimeField(read_only=True)
     is_check_pass = serializers.BooleanField(read_only=True)
     id = serializers.IntegerField(read_only=True)
 
